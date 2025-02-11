@@ -1794,6 +1794,7 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-build",
+ "tauri-plugin-mobilesensors",
  "tauri-plugin-opener",
 ]
 
@@ -3850,6 +3851,16 @@ dependencies = [
  "tauri-utils",
  "toml 0.8.20",
  "walkdir",
+]
+
+[[package]]
+name = "tauri-plugin-mobilesensors"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "tauri",
+ "tauri-plugin",
+ "thiserror 2.0.11",
 ]
 
 [[package]]
