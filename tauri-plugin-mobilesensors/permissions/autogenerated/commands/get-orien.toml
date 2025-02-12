@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-get-orien"
+description = "Enables the get-orien command without any pre-configured scope."
+commands.allow = ["get-orien"]
+
+[[permission]]
+identifier = "deny-get-orien"
+description = "Denies the get-orien command without any pre-configured scope."
+commands.deny = ["get-orien"]

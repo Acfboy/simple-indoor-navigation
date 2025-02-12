@@ -14,9 +14,9 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
 pub struct Mobilesensors<R: Runtime>(AppHandle<R>);
 
 impl<R: Runtime> Mobilesensors<R> {
-  pub fn ping(&self, payload: PingRequest) -> crate::Result<PingResponse> {
-    Ok(PingResponse {
-      value: payload.value,
+  pub fn get_orientation(&self) -> crate::Result<OrientationData> {
+    Ok(OrientationData {
+      orientation: -1.0
     })
   }
 }

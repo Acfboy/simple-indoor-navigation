@@ -295,6 +295,56 @@
       "type": "string",
       "oneOf": [
         {
+          "description": "Enables the get- command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-"
+        },
+        {
+          "description": "Denies the get- command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-"
+        },
+        {
+          "description": "Enables the get-ori command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-ori"
+        },
+        {
+          "description": "Denies the get-ori command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-ori"
+        },
+        {
+          "description": "Enables the get-orien command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-orien"
+        },
+        {
+          "description": "Denies the get-orien command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-orien"
+        },
+        {
+          "description": "Enables the get-orientation command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-orientation"
+        },
+        {
+          "description": "Denies the get-orientation command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-orientation"
+        },
+        {
+          "description": "Enables the get_orientation command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-get-orientation"
+        },
+        {
+          "description": "Denies the get_orientation command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-get-orientation"
+        },
+        {
           "description": "Enables the ping command without any pre-configured scope.",
           "type": "string",
           "const": "allow-ping"

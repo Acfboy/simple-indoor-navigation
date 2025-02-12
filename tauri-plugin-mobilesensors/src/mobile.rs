@@ -15,7 +15,7 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
   api: PluginApi<R, C>,
 ) -> crate::Result<Mobilesensors<R>> {
   #[cfg(target_os = "android")]
-  let handle = api.register_android_plugin("com.plugin.mobilesensors", "ExamplePlugin")?;
+  let handle = api.register_android_plugin("com.plugin.mobilesensors", "MobilesensorsPlugin")?;
   #[cfg(target_os = "ios")]
   let handle = api.register_ios_plugin(init_plugin_mobilesensors)?;
   Ok(Mobilesensors(handle))
@@ -25,10 +25,11 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
 pub struct Mobilesensors<R: Runtime>(PluginHandle<R>);
 
 impl<R: Runtime> Mobilesensors<R> {
-  pub fn ping(&self, payload: PingRequest) -> crate::Result<PingResponse> {
+  pub fn get_orientation(&self) -> crate::Result<OrientationData> {
     self
       .0
-      .run_mobile_plugin("ping", payload)
+      .run_mobile_plugin("getOrientation", {})
       .map_err(Into::into)
+    // Ok(OrientationData { orientation: 0.0 })
   }
 }
