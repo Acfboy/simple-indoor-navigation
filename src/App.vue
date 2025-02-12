@@ -1,97 +1,54 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { invoke } from "@tauri-apps/api/core";
+import { NLayout, NLayoutSider, NLayoutContent, NLayoutFooter } from 'naive-ui'
+import Intersection from "./components/intersection.vue";
+import Timeline from "./components/timeline.vue";
+import Compass from "./components/compass.vue";
+import Prompt from "./components/prompt.vue";
+import Footer from "./components/footer.vue";
 
-const greetMsg = ref(1.0);
-interface OrientationData {
-  orientation: number;
-}
+const screenHeight = window.screen.height;
+const screenWidth = window.screen.width;
 
-async function greet() {
-  // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-  let resp: OrientationData;
-  setInterval(async () => {
-      resp = await invoke("plugin:mobilesensors|get_orientation");
-      greetMsg.value = Math.floor(resp.orientation);
-  }, 10); 
-}
+const promptHeight = screenHeight * 0.20;
+const mainHeight = screenHeight * 0.7;
+const timelineWidth = ref(screenWidth * 0.2);
 </script>
 
 <template>
   <main class="container">
-    <h1>当前方位角：</h1>
-
-    <form class="row" @submit.prevent="greet">
-      <button type="submit">查询</button>
-    </form>
-    <p>{{ greetMsg }}</p>
+    <n-layout>
+      <n-layout-content has-sider :style="`height: ${mainHeight}px; `">
+        <n-layout-sider collapse-mode="width" :collapsed-width="timelineWidth" :width="timelineWidth * 2"
+          show-trigger="arrow-circle" content-style="padding: 24px;" bordered>
+          <Timeline />
+        </n-layout-sider>
+        <n-layout-content>
+          <div :style="`height: ${mainHeight * 0.5}px;`">
+            <Intersection />
+          </div>
+          <div :style="`height: ${mainHeight * 0.5}px;`">
+            <Compass />
+          </div>
+        </n-layout-content>
+      </n-layout-content>
+      <n-layout-content :style="`height: ${promptHeight}px;`" bordered>
+        <Prompt />
+      </n-layout-content>
+      <n-layout-footer bordered>
+        <Footer/>
+      </n-layout-footer>
+    </n-layout>
   </main>
 </template>
 
-<style>
-:root {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 400;
-
-  color: #0f0f0f;
-  background-color: #f6f6f6;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  -webkit-text-size-adjust: 100%;
+<style scoped>
+.n-layout-header {
+  padding: 24px;
 }
 
-.container {
-  margin: 0;
-  padding-top: 10vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-align: center;
+.n-layout-footer {
+  padding: 24px;
+  background-color: white;
 }
-.row {
-  display: flex;
-  justify-content: center;
-}
-
-
-h1 {
-  text-align: center;
-}
-
-input,
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  color: #0f0f0f;
-  background-color: #ffffff;
-  transition: border-color 0.25s;
-  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
-}
-
-button {
-  cursor: pointer;
-}
-
-button:hover {
-  border-color: #396cd8;
-}
-button:active {
-  border-color: #396cd8;
-  background-color: #e8e8e8;
-}
-
-input,
-button {
-  outline: none;
-}
-
 </style>
