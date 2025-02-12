@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { NLayout, NLayoutSider, NLayoutContent, NLayoutFooter } from 'naive-ui'
+import { NLayout, NLayoutSider, NLayoutContent, NLayoutFooter, NIcon, NFlex } from 'naive-ui'
+
+import { ArrowBack } from '@vicons/ionicons5';
 import Intersection from "./components/intersection.vue";
 import Timeline from "./components/timeline.vue";
 import Compass from "./components/compass.vue";
 import Prompt from "./components/prompt.vue";
 import Footer from "./components/footer.vue";
+import Painter from "./components/painter.vue";
 
 const screenHeight = window.screen.height;
 const screenWidth = window.screen.width;
@@ -13,11 +16,23 @@ const screenWidth = window.screen.width;
 const promptHeight = screenHeight * 0.20;
 const mainHeight = screenHeight * 0.7;
 const timelineWidth = ref(screenWidth * 0.2);
+
+const page = ref("main");
+
+function handleSwitch(nextPage: string) {
+  page.value = nextPage
+}
+
+function handleBack() {
+  page.value = "main"
+}
+
 </script>
 
 <template>
   <main class="container">
-    <n-layout>
+
+    <n-layout v-show="page == 'main'">
       <n-layout-content has-sider :style="`height: ${mainHeight}px; `">
         <n-layout-sider collapse-mode="width" :collapsed-width="timelineWidth" :width="timelineWidth * 2"
           show-trigger="arrow-circle" content-style="padding: 24px;" bordered>
@@ -36,9 +51,44 @@ const timelineWidth = ref(screenWidth * 0.2);
         <Prompt />
       </n-layout-content>
       <n-layout-footer bordered>
-        <Footer/>
+        <Footer @switch="handleSwitch" />
       </n-layout-footer>
     </n-layout>
+
+    <n-layout v-show="page == 'info'">
+      <n-layout-content has-sider :style="`height: ${screenHeight * 0.9}px; `">
+        <Info />
+      </n-layout-content>
+      <n-layout-footer bordered>
+        <n-flex justify="center">
+          <n-button @click="handleBack">
+            <n-icon>
+              <ArrowBack />
+            </n-icon>
+            返回
+          </n-button>
+        </n-flex>
+      </n-layout-footer>
+    </n-layout>
+    
+    <n-layout v-show="page == 'mapmanager'">
+      <n-layout-content has-sider :style="`height: ${screenHeight * 0.9}px; `">
+        <mapmanager />
+      </n-layout-content>
+      <n-layout-footer bordered>
+        <n-flex justify="center">
+          <n-button @click="handleBack">
+            <n-icon>
+              <ArrowBack />
+            </n-icon>
+            返回
+          </n-button>
+        </n-flex>
+      </n-layout-footer>
+    </n-layout> 
+      <Painter @switch="handleSwitch" :screenHeight="screenHeight"v-show="page == 'paint'" />
+
+
   </main>
 </template>
 

@@ -44,8 +44,10 @@ class OrientationSensorManager(private val context: Context) : SensorEventListen
             SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
             val orientationAngles = FloatArray(3)
             SensorManager.getOrientation(rotationMatrix, orientationAngles)
-
             orientation = Math.toDegrees(orientationAngles[0].toDouble()).toFloat()
+            if (orientation < 0) {
+                orientation += 360
+            }
         }
     }
 
