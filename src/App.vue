@@ -9,8 +9,9 @@ import Compass from "./components/compass.vue";
 import Prompt from "./components/prompt.vue";
 import Footer from "./components/footer.vue";
 import Painter from "./components/painter.vue";
+import { exists, BaseDirectory, readTextFile } from '@tauri-apps/plugin-fs';
 
-const screenHeight = window.screen.height;
+const screenHeight = window.screen.height * 0.99;
 const screenWidth = window.screen.width;
 
 const promptHeight = screenHeight * 0.20;
@@ -26,6 +27,7 @@ function handleSwitch(nextPage: string) {
 function handleBack() {
   page.value = "main"
 }
+
 
 </script>
 
@@ -70,7 +72,7 @@ function handleBack() {
         </n-flex>
       </n-layout-footer>
     </n-layout>
-    
+
     <n-layout v-show="page == 'mapmanager'">
       <n-layout-content has-sider :style="`height: ${screenHeight * 0.9}px; `">
         <mapmanager />
@@ -85,8 +87,9 @@ function handleBack() {
           </n-button>
         </n-flex>
       </n-layout-footer>
-    </n-layout> 
-      <Painter @switch="handleSwitch" :screenHeight="screenHeight"v-show="page == 'paint'" />
+    </n-layout>
+
+    <Painter @switch="handleSwitch" :screenHeight="screenHeight" v-if="page == 'paint'"/>
 
 
   </main>

@@ -17,7 +17,7 @@ import app.tauri.plugin.Invoke
 class OrientationSensorManager(private val context: Context) : SensorEventListener {
     private var sensorManager: SensorManager? = null
     private var geomagneticRotationVectorSensor: Sensor? = null
-    private var orientation: Float = 0.0f // 用于存储方位角
+    private var orientation: Float = 0.0f 
 
     init {
         sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -52,7 +52,6 @@ class OrientationSensorManager(private val context: Context) : SensorEventListen
     }
 
     override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {
-        // 精度变化时的处理（可选实现）
     }
 }
 
