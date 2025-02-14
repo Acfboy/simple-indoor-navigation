@@ -2,6 +2,7 @@
 pub struct Guidance {
     pub target_direction: usize,
     pub target_mark: String,
+    pub prompt: String,
     pub next_marks: Vec<String>,
 }
 
@@ -15,14 +16,20 @@ impl Route {
     pub fn emplace_back(
         &mut self,
         target_direction: usize,
+        prompt: String,
         target_mark: String,
         next_marks: Vec<String>,
     ) {
         self.path.push(Guidance {
             target_direction,
+            prompt,
             target_mark,
             next_marks,
         });
+    }
+
+    pub fn timeline(&self) -> Vec<String> {
+        self.path.iter().map(|x| x.target_mark.clone()).collect()
     }
 
     pub fn query(&self) -> Guidance {

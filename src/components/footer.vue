@@ -57,8 +57,7 @@ import { NFlex, NButton, NIcon, NDropdown, NModal, NCard, NSpace, NSelect } from
 import { ArrowBack, ArrowForward, NavigateOutline, Add } from '@vicons/ionicons5';
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
-import themeLight from 'naive-ui/es/float-button-group/styles/light';
-import { BaseDirectory, readDir, readFile, readTextFile } from '@tauri-apps/plugin-fs';
+import { BaseDirectory, readDir, readTextFile } from '@tauri-apps/plugin-fs';
 
 type landmarkItem = {
     label: string,
@@ -88,15 +87,6 @@ type OriginalMap = {
     nodes: Intersection[],
     edges: Corridor[]
 }
-
-type CheckboxItem = {
-    label: string,
-    type: string,
-    id: number,
-    checked: false
-}
-
-type CheckboxList = CheckboxItem[];
 
 function markName(x: Mark) {
     let s: string = '';
@@ -132,7 +122,8 @@ export default {
             cur: "",
             dest: "",
             showInfo: false,
-            selectedMap: ""
+            selectedMap: "",
+            mapObj: { edges: [], nodes: [] } as OriginalMap
         };
     },
     methods: {
@@ -141,18 +132,18 @@ export default {
                 baseDir: BaseDirectory.AppData
             });
             const mapObj: OriginalMap = JSON.parse(content);
-            let nameList: string[] = [];
+            let nameList: Mark[] = [];
             for (const c of mapObj.nodes)
                 for (const d of c)
-                    nameList.push(markName(d.mark));
+                    nameList.push(d.mark);
             for (const c of mapObj.edges)
                 for (const d of c)
-                    nameList.push(markName(d));
+                    nameList.push(d);
             nameList = Array.from(new Set(nameList));
             this.landmarks = nameList.map((s) => {
                 return {
-                    label: s,
-                    value: s
+                    label: markName(s),
+                    value: JSON.stringify(s)
                 }
             });
         },
@@ -162,9 +153,6 @@ export default {
             });
         },
         async newNav() {
-            // const resp: landmarkItem[] = await invoke("get_landmark_list");
-            // this.landmarks = resp;
-
             this.maps = [];
             let mapList = [];
             try {
@@ -190,11 +178,12 @@ export default {
             this.$emit('switch', key)
         },
         async createNewNav() {
-            // await invoke("get_landmark_list", {
-            //     cur: this.cur,
-            //     dest: this.dest
-            // });
-            this.newNavModal = false;
+            invoke("create_new_nav", {
+                cur: JSON.parse(this.cur),
+                dest: JSON.parse(this.dest),
+                map: this.mapObj
+            })
+            .then(() => this.newNavModal = false, () => alert("不合法地图或不存在路径"));
         }
     },
     mounted() {

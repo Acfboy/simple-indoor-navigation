@@ -162,9 +162,8 @@ import {
   NCard, NLayout, NLayoutContent, NLayoutFooter, NFlex, NIcon, NText, NLayoutHeader, NTabs, NTabPane, NForm,
   NFormItem, NInput, NCheckbox, NButton, NTable, NModal, NInputNumber, NTransfer, useMessage,
 } from 'naive-ui';
-import { exists, BaseDirectory, create, open, writeTextFile, mkdir } from '@tauri-apps/plugin-fs';
+import { exists, BaseDirectory, create, writeTextFile, mkdir } from '@tauri-apps/plugin-fs';
 import { ArrowBack, SaveOutline } from '@vicons/ionicons5';
-import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
 
 type Corridor = Mark[];
@@ -317,9 +316,18 @@ export default {
     addNode() {
       if (this.curInsec.length == 0) {
         alert("不能添加空节点");
-      }
-      else {
-        this.map.nodes.push(this.curInsec);
+      } else {
+        let arr = new Array();
+        let set = new Set();
+        for (const c of this.curInsec) {
+          arr.push(c.mark.name + c.mark.detail);
+          set.add(c.mark.name + c.mark.detail);
+        }
+        if (arr.length != set.size) {
+          alert('不同地标请设置不同的名称。');
+        } else {
+          this.map.nodes.push(this.curInsec);
+        }
       }
       this.curInsec = []
     },
@@ -344,8 +352,13 @@ export default {
         direction: this.orien,
         mark: this.curMark
       };
-      this.curInsec.push(curBranch);
-      this.addMarkWithDire = false;
+      if (this.curMark.elevatorFloor > 163 || this.curMark.elevatorFloor < -163) {
+        alert('世界最高楼哈利法塔的层数是 163，我觉得你这层数不对。');
+      }
+      else {
+        this.curInsec.push(curBranch);
+        this.addMarkWithDire = false;
+      }
     },
     showAddMarkToInsec() {
       this.curMark = {

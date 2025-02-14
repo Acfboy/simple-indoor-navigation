@@ -25,13 +25,13 @@ export default {
     },
     methods: {
         async setPromptListener() {
-            await listen<string>('prompt', (event) => {
-                this.prompt += event.payload;
+            listen<string>('prompt', (event) => {
+                this.prompt = event.payload;
             });
         },
     },
     mounted() {
-        // this.setRouteListener();
+        this.setPromptListener();
     },
 };
 </script>
