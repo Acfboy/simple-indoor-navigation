@@ -93,7 +93,7 @@ impl Navigator {
         while let Some(exit) = last_inter.get(u).cloned() {
             let port = graph.get(exit).cloned().unwrap();
             let nxt = mark2inter.get(port).cloned().unwrap();
-            let di = Map::find_direction(u, exit); 
+            let di = Map::find_direction(u, exit);
             let target_mark: String = exit.name.clone();
             let prompt: String;
             if port.elevator_floor != 0 {

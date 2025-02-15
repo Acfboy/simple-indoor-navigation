@@ -9,7 +9,7 @@
           <n-flex verticle>
             <n-card title="添加节点" :style="`height: ${screenHeight * 0.4}px; overflow-y: auto; `">
               添加路口每个方向的地标，然后添加节点。
-              <n-table :bordered="false" :single-line="false">
+              <n-table :bordered="false" :single-line="false" size="small">
                 <thead>
                   <tr>
                     <th>方向</th>
@@ -41,7 +41,7 @@
             </n-card>
             <n-card title="添加走廊" :style="`height: ${screenHeight * 0.4}px; overflow-y: auto;`">
               添加走廊中每个地标，确保两端地标在最前和最后，然后添加地标。
-              <n-table :bordered="false" :single-line="false">
+              <n-table :bordered="false" :single-line="false" size="small">
                 <thead>
                   <tr>
                     <th>主名称</th>

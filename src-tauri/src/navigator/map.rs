@@ -41,7 +41,6 @@ pub struct Map {
     nodes: Vec<Intersection>,
 }
 
-
 impl Map {
     pub fn identity(mark: &Mark) -> String {
         mark.name.clone() + &mark.detail.clone()
@@ -105,7 +104,11 @@ impl Map {
             .iter()
             .find(|&x| x.iter().find(|&y| y == mark).is_some());
         if let None = corri {
-            (None, None)
+            if map.contains_key(mark) {
+                (Some(map.get(mark).unwrap()), None)
+            } else {
+                (None, None)
+            }
         } else {
             let c = corri.unwrap();
             let mut res = (map.get(&c[0]).cloned(), map.get(&c[c.len() - 1]).cloned());
@@ -134,11 +137,14 @@ impl Map {
         mark: &Mark,
         inter: &'a Intersection,
     ) -> Option<(usize, &'a Mark)> {
-        let corri = self
+        let corri_opt = self
             .edges
             .iter()
-            .find(|&x| x.iter().find(|&y| y == mark).is_some())
-            .unwrap();
+            .find(|&x| x.iter().find(|&y| y == mark).is_some());
+        if corri_opt.is_none() {
+            return None;
+        }
+        let corri = corri_opt.unwrap();
         if *mark == corri[0] || *mark == corri[corri.len() - 1] {
             return None;
         }

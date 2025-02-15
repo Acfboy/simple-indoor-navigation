@@ -9,6 +9,7 @@ import Compass from "./components/compass.vue";
 import Prompt from "./components/prompt.vue";
 import Footer from "./components/footer.vue";
 import Painter from "./components/painter.vue";
+import Manager from "./components/manager.vue";
 import { exists, BaseDirectory, readTextFile } from '@tauri-apps/plugin-fs';
 
 const screenHeight = window.screen.height * 0.99;
@@ -73,9 +74,9 @@ function handleBack() {
       </n-layout-footer>
     </n-layout>
 
-    <n-layout v-show="page == 'mapmanager'">
+    <n-layout v-if="page == 'mapmanager'">
       <n-layout-content has-sider :style="`height: ${screenHeight * 0.9}px; `">
-        <mapmanager />
+        <Manager />
       </n-layout-content>
       <n-layout-footer bordered>
         <n-flex justify="center">

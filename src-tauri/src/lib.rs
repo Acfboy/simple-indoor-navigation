@@ -16,7 +16,7 @@ struct State {
 struct TimelineResponse {
     start: String,
     dest: String,
-    path: Vec<String>
+    path: Vec<String>,
 }
 
 #[tauri::command]
@@ -31,25 +31,31 @@ async fn create_new_nav(
     (*data).init(map);
     (*data).navigate(&cur, &dest)?;
     let timeline = data.route().timeline();
-    app.emit("route-update", TimelineResponse {
-        start: cur.full_name(),
-        dest: dest.full_name(),
-        path: timeline
-    }).unwrap();
+    app.emit(
+        "route-update",
+        TimelineResponse {
+            start: cur.full_name(),
+            dest: dest.full_name(),
+            path: timeline,
+        },
+    )
+    .unwrap();
     Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .manage(State::default())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_mobilesensors::init())
         .setup(|app| {
             let scope = app.fs_scope();
-            let dir = app.path().data_dir().unwrap().join("maps");
-            println!("Config Directory: {:?}", dir);
-            scope.allow_directory(dir, false).unwrap();
+            let data_dir = app.path().data_dir().unwrap().join("maps");
+            let download_dir = app.path().download_dir().unwrap();
+            scope.allow_directory(data_dir, false).unwrap();
+            scope.allow_directory(download_dir, false).unwrap();
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![create_new_nav])
