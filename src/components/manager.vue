@@ -20,18 +20,27 @@
             </tbody>
         </n-table>
         <n-flex justify="end" style="padding-top: 20px;">
-            <n-button tertiary type="success">
+            <n-button tertiary type="success" @click="importMap()">
                 导入地图
             </n-button>
         </n-flex>
     </n-card>
+    <n-modal v-model:show="showSetName">
+        <n-card :boarded="false" title="新地图名称">
+            <n-input v-model:value="newName" />
+            <n-flex justify="end">
+                <n-button tertiary type="success" @click="setName">
+                    确定
+                </n-button>
+            </n-flex>
+        </n-card>
+    </n-modal>
 </template>
 
 <script lang="ts">
-import { NCard, NFlex, NTable, NButton } from 'naive-ui';
-import { listen } from '@tauri-apps/api/event';
-import { BaseDirectory, copyFile, readDir, remove } from '@tauri-apps/plugin-fs';
-import { save } from '@tauri-apps/plugin-dialog';
+import { NCard, NFlex, NTable, NButton, NModal, NInput } from 'naive-ui';
+import { BaseDirectory, create, readDir, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-fs';
+import { invoke } from '@tauri-apps/api/core';
 
 type MapItem = {
     label: string,
@@ -40,20 +49,49 @@ type MapItem = {
 
 export default {
     components: {
-        NCard, NFlex, NTable, NButton
+        NCard, NFlex, NTable, NButton, NModal, NInput
     },
     data() {
         return {
-            maps: [] as MapItem[]
+            maps: [] as MapItem[],
+            showSetName: false,
+            newName: "",
+            newMapData: ""
         };
     },
     methods: {
+        async importMap() {
+            this.newName = "";
+            this.newMapData = await invoke('import_map');
+            if (this.newMapData == "err") {
+                alert('该文件不是合法地图');
+            }
+            else this.showSetName = true;
+
+        },
+        async setName() {
+            try {
+                const filename = 'maps/' + this.newName + '.json'
+                await create(filename, {
+                    baseDir: BaseDirectory.AppData
+                });
+                await writeTextFile(filename, this.newMapData, {
+                    baseDir: BaseDirectory.AppData
+                });
+                this.refreshMap();
+                this.showSetName = false;
+            } catch (err) {
+                alert(err);
+            }
+        },
         async exportMap(path: string, name: string) {
-            await copyFile(path, name + '.json', {
-                fromPathBaseDir: BaseDirectory.AppData,
-                toPathBaseDir: BaseDirectory.Download
+            let mapContent = await readTextFile(path, {
+                baseDir: BaseDirectory.AppData
             });
-            alert('保存到下载目录下了')
+            await invoke('export_map', {
+                content: mapContent,
+                name: name + '.json'
+            })
         },
         async deleteMap(path: string) {
             await remove(path, {

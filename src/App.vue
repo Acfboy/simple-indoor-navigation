@@ -10,7 +10,6 @@ import Prompt from "./components/prompt.vue";
 import Footer from "./components/footer.vue";
 import Painter from "./components/painter.vue";
 import Manager from "./components/manager.vue";
-import { exists, BaseDirectory, readTextFile } from '@tauri-apps/plugin-fs';
 
 const screenHeight = window.screen.height * 0.99;
 const screenWidth = window.screen.width;
