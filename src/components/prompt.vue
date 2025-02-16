@@ -2,7 +2,7 @@
     <n-card style="height: 100%;">
         <n-card style="position: relative; top:20%;" :bordered="false">
             <!-- <n-space justify="center"> -->
-                <n-text style="font-size: 2em;">{{ prompt }}</n-text>
+                <n-text style="font-size: 1.5em;">{{ prompt }}</n-text>
             <!-- </n-space> -->
         </n-card>
     </n-card>

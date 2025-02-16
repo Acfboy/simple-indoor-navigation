@@ -47,7 +47,8 @@ export default {
             await listen<Route>('route-change', (event) => {
                 this.begin = event.payload.start;
                 this.end = event.payload.dest;
-                this.path = event.payload.path
+                this.path = event.payload.path;
+                this.cur = 0;
             });
         }
     },

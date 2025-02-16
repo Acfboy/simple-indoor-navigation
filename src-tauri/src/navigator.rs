@@ -1,4 +1,4 @@
-mod guidance;
+pub mod guidance;
 pub mod map;
 
 use std::collections::{HashMap, VecDeque};
@@ -18,7 +18,7 @@ impl Navigator {
         self.map = map;
     }
 
-    pub fn navigate(&mut self, start: &Mark, finish: &Mark) -> Result<(), ()> {
+    pub fn navigate(&mut self, start: &Mark, finish: &Mark) -> Result<(), String> {
         let graph = self.map.edge_table();
         let (mark2inter, mut dis) = self.map.node_table();
         let begin = self.map.init_intersection(&start, &mark2inter);
@@ -44,24 +44,24 @@ impl Navigator {
                 let op_exit = graph.get(&c.mark);
                 if op_exit.is_none() {
                     if c.mark.elevator_floor != 0 {
-                        let set = elevators.get(&Map::identity(&c.mark)).unwrap();
+                        let set = elevators.get(&Map::identity(&c.mark)).ok_or("err")?;
                         for &floor in set {
-                            let &v = mark2inter.get(floor).unwrap();
+                            let &v = mark2inter.get(floor).ok_or("err")?;
                             let od = dis.get_mut(v).unwrap();
                             if *od > d + 1 {
                                 *od = d + 1;
-                                last_inter.entry(v).insert_entry(&c.mark);
+                                last_inter.entry(v).insert_entry((floor, u));
                                 q.push_back(v);
                             }
                         }
                     }
                 } else {
                     let exit = op_exit.unwrap();
-                    let v = *(mark2inter.get(exit).unwrap());
+                    let v = *(mark2inter.get(exit).ok_or("err")?);
                     let od = dis.get_mut(v).unwrap();
                     if *od > d + 1 {
                         *od = d + 1;
-                        last_inter.entry(v).insert_entry(&c.mark);
+                        last_inter.entry(v).insert_entry((exit, u));
                         q.push_back(v);
                     }
                 }
@@ -69,7 +69,7 @@ impl Navigator {
         }
 
         if begin.0.is_none() {
-            return Err(());
+            return Err("err".to_string());
         }
         let mut fst = begin.0.unwrap();
         if let Some(v) = begin.1 {
@@ -78,7 +78,7 @@ impl Navigator {
             }
         }
         if *dis.get(fst).unwrap() == INF {
-            return Err(());
+            return Err("dis = inf".to_string());
         }
 
         let init_direction = self.map.init_direction(&start, &fst);
@@ -90,14 +90,12 @@ impl Navigator {
         }
 
         let mut u = fst;
-        while let Some(exit) = last_inter.get(u).cloned() {
-            let port = graph.get(exit).cloned().unwrap();
-            let nxt = mark2inter.get(port).cloned().unwrap();
+        while let Some((exit, nxt)) = last_inter.get(u).cloned() {
             let di = Map::find_direction(u, exit);
             let target_mark: String = exit.name.clone();
             let prompt: String;
-            if port.elevator_floor != 0 {
-                prompt = format!("由{}前往 {} 楼。", target_mark, port.elevator_floor);
+            if exit.elevator_floor != 0 {
+                prompt = format!("由{}前往 {} 楼。", target_mark, Map::floor_number(nxt));
             } else {
                 prompt = format!("往{}方向前进至下一个路口。", target_mark);
             }
@@ -118,4 +116,26 @@ impl Navigator {
     pub fn route(&mut self) -> &mut Route {
         &mut self.route
     }
+}
+
+#[test]
+fn test_nav() {
+    let map = serde_json::from_str::<Map>(
+r#"{"nodes":[[{"direction":303,"mark":{"name":"4","detail":"","elevatorFloor":0}},{"direction":7,"mark":{"name":"3","detail":"","elevatorFloor":0}},{"direction":94,"mark":{"name":"2","detail":"","elevatorFloor":0}}],[{"direction":196,"mark":{"name":"7","detail":"","elevatorFloor":0}},{"direction":102,"mark":{"name":"6","detail":"","elevatorFloor":0}}],[{"direction":295,"mark":{"name":"1","detail":"","elevatorFloor":0}}]],"edges":[[{"name":"1","detail":"","elevatorFloor":0},{"name":"2","detail":"","elevatorFloor":0}],[{"name":"3","detail":"","elevatorFloor":0},{"name":"7","detail":"","elevatorFloor":0}]]}
+"#).unwrap();
+    let start =
+        serde_json::from_str::<Mark>(r#"{"name":"1","detail":"","elevatorFloor":0}"#).unwrap();
+    let dest =
+        serde_json::from_str::<Mark>(r#"{"name":"7","detail":"","elevatorFloor":0}"#).unwrap();
+    let mut navi = Navigator::default();
+    navi.init(map.clone());
+    navi.navigate(&start, &dest).unwrap();
+    let (mark2inter, _) = map.node_table();
+    let end = map.init_intersection(&dest, &mark2inter);
+    assert!(mark2inter.contains_key(&dest));
+    let end_ins = end.0.unwrap();
+    assert_eq!(end_ins[0].mark.name, "7");
+    let route  = &navi.route().path;
+    assert_eq!(route.len(), 2);
+
 }

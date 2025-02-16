@@ -8,7 +8,7 @@ pub struct Guidance {
 
 #[derive(Default)]
 pub struct Route {
-    path: Vec<Guidance>,
+    pub path: Vec<Guidance>,
     current_guidance: usize,
 }
 
@@ -29,7 +29,7 @@ impl Route {
     }
 
     pub fn timeline(&self) -> Vec<String> {
-        self.path.iter().map(|x| x.target_mark.clone()).collect()
+        self.path.iter().map(|x| format!("{}附近路口", x.target_mark.clone())).collect()
     }
 
     pub fn query(&self) -> Guidance {
@@ -46,7 +46,7 @@ impl Route {
     }
 
     pub fn prev_guidance(&mut self) -> Result<(), ()> {
-        if self.current_guidance - 1 < 0 {
+        if self.current_guidance == 0 {
             Err(())
         } else {
             self.current_guidance -= 1;

@@ -1,23 +1,31 @@
-use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
+use tauri_plugin_android_fs::{AndroidFs, AndroidFsExt};
 use tauri_plugin_fs::FsExt;
 use tauri_plugin_mobilesensors;
-use tauri_plugin_android_fs::{AndroidFs, AndroidFsExt};
 
 mod navigator;
+use navigator::guidance::Guidance;
 use navigator::map::{Map, Mark};
 use navigator::Navigator;
+
+mod response;
+use response::{IntersectionResponse, TimelineResponse};
 
 #[derive(Default)]
 struct State {
     s: std::sync::Mutex<Navigator>,
 }
 
-#[derive(Serialize, Clone)]
-struct TimelineResponse {
-    start: String,
-    dest: String,
-    path: Vec<String>,
+fn update_nav(app: &AppHandle, nav: Guidance) {
+    app.emit(
+        "landmark-change",
+        IntersectionResponse {
+            landmarks: nav.next_marks,
+        },
+    )
+    .unwrap();
+    app.emit("prompt", nav.prompt).unwrap();
+    app.emit("target-change", nav.target_direction).unwrap();
 }
 
 #[tauri::command]
@@ -27,13 +35,13 @@ async fn create_new_nav(
     cur: Mark,
     dest: Mark,
     map: Map,
-) -> Result<(), ()> {
-    let mut data = state.s.lock().unwrap();
-    (*data).init(map);
+) -> Result<(), String> {
+    let mut data = state.s.lock().map_err(|e| e.to_string())?;
+    (*data).init(map.clone());
     (*data).navigate(&cur, &dest)?;
     let timeline = data.route().timeline();
     app.emit(
-        "route-update",
+        "route-change",
         TimelineResponse {
             start: cur.full_name(),
             dest: dest.full_name(),
@@ -41,6 +49,25 @@ async fn create_new_nav(
         },
     )
     .unwrap();
+    update_nav(&app, data.route().query());
+    Ok(())
+}
+
+#[tauri::command]
+async fn next_step(app: AppHandle, state: tauri::State<'_, State>) -> Result<(), ()> {
+    let mut data = state.s.lock().unwrap();
+    data.route().next_guidance()?;
+    update_nav(&app, data.route().query());
+    app.emit("route-move", 1).unwrap();
+    Ok(())
+}
+
+#[tauri::command]
+async fn prev_step(app: AppHandle, state: tauri::State<'_, State>) -> Result<(), ()> {
+    let mut data = state.s.lock().unwrap();
+    data.route().prev_guidance()?;
+    update_nav(&app, data.route().query());
+    app.emit("route-move", -1).unwrap();
     Ok(())
 }
 
@@ -89,7 +116,13 @@ pub fn run() {
             scope.allow_directory(data_dir, false).unwrap();
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![create_new_nav, export_map, import_map])
+        .invoke_handler(tauri::generate_handler![
+            create_new_nav,
+            export_map,
+            import_map,
+            next_step,
+            prev_step
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

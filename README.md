@@ -1,16 +1,23 @@
-# Tauri + Vue + TypeScript
+## simple-indoor-navigation
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+This is a hands - on project of mine to create an indoor navigation app based on a mobile compass. I'm using Tauri for the backend, with Vue + TypeScript for the frontend and Rust for the backend.
 
-## Recommended IDE Setup
+I've already implemented the original features, but there are still some issues:
+1. Poor Module Division: Some parts have a lot of code in a single function or component, which reduces readability and maintainability.
+2. Lack of Documentation and Testing: I didn't get into the habit of writing documentation and tests, focusing only on getting the project done quickly.
+3. Inadequate Error Handling: Although it generally works fine, the app crashes if given a map that's mostly correct but has some issues.
+4. Low Practicality: In practical testing in Qinling Hall, the navigation is not very effective.
+5. **Pretentious:** There's no need to write in English in the README at all.
 
-- [VS Code](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+As a learning exercise, I'll gradually refactor some code to make it more elegant and improve its practicality.
 
-## Type Support For `.vue` Imports in TS
+这是我的一个练手项目，实现一个基于手机罗盘的室内导航 APP，使用 tauri 实现，前端 Vue + Typescript，后端 Rust。
 
-Since TypeScript cannot handle type information for `.vue` imports, they are shimmed to be a generic Vue component type by default. In most cases this is fine if you don't really care about component prop types outside of templates. However, if you wish to get actual prop types in `.vue` imports (for example to get props validation when using manual `h(...)` calls), you can enable Volar's Take Over mode by following these steps:
+原定功能已经实现完成，但是还有以下问题：
 
-1. Run `Extensions: Show Built-in Extensions` from VS Code's command palette, look for `TypeScript and JavaScript Language Features`, then right click and select `Disable (Workspace)`. By default, Take Over mode will enable itself if the default TypeScript extension is disabled.
-2. Reload the VS Code window by running `Developer: Reload Window` from the command palette.
+1. 模块划分不够好。有几个部分单个函数单个组件写了一大堆东西，可读性可维护性较低。
+2. 缺少文档和测试。习惯不够好，没有随手写文档和测试，就想着快点把东西做出来。
+3. 没有考虑好错误处理。虽然一般不会出问题，但是若给个大部分对但有点问题的地图直接爆炸。
+4. 实用性低。在秦岭堂的实战测试表明，这导航一点也不好用。
 
-You can learn more about Take Over mode [here](https://github.com/johnsoncodehk/volar/discussions/471).
+作为练习，我会慢慢重构部分代码，使实现更加优雅，并提高实用性。

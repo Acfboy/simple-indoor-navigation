@@ -388,7 +388,7 @@ export default {
       };
       const resp: OrientationData = await invoke("plugin:mobilesensors|get_orientation");
       this.orien = Math.floor(resp.orientation);
-    }, 10);
+    }, 200);
   },
 };
 </script>

@@ -1,6 +1,6 @@
 <template>
     <n-flex justify="space-between">
-        <n-button text :disabled="!running">
+        <n-button text :disabled="!running" @click="prevStep">
             <n-icon>
                 <ArrowBack />
             </n-icon>
@@ -21,7 +21,7 @@
                 更多
             </n-button>
         </n-dropdown>
-        <n-button text :disabled="!running">
+        <n-button text :disabled="!running" @click="nextStep">
             下一步
             <n-icon>
                 <ArrowForward />
@@ -132,6 +132,7 @@ export default {
                 baseDir: BaseDirectory.AppData
             });
             const mapObj: OriginalMap = JSON.parse(content);
+            this.mapObj = mapObj;
             let nameList: Mark[] = [];
             for (const c of mapObj.nodes)
                 for (const d of c)
@@ -139,7 +140,13 @@ export default {
             for (const c of mapObj.edges)
                 for (const d of c)
                     nameList.push(d);
-            nameList = Array.from(new Set(nameList));
+            let set: Set<string> = new Set();
+            for (const c of nameList) {
+                set.add(JSON.stringify(c));
+            }
+            nameList = [];
+            for (const s of set) 
+                nameList.push(JSON.parse(s));
             this.landmarks = nameList.map((s) => {
                 return {
                     label: markName(s),
@@ -147,8 +154,24 @@ export default {
                 }
             });
         },
+        async prevStep() {
+            try {
+                await invoke('prev_step');
+            }
+            catch {
+                
+            }
+        },
+        async nextStep() {
+            try {
+                await invoke('next_step');
+            }
+            catch {
+
+            }
+        },
         async setBeginListener() {
-            await listen<number>('route-move', () => {
+            await listen<number>('route-change', () => {
                 this.running = true;
             });
         },
@@ -183,7 +206,7 @@ export default {
                 dest: JSON.parse(this.dest),
                 map: this.mapObj
             })
-            .then(() => this.newNavModal = false, () => alert("不合法地图或不存在路径"));
+            .then(() => this.newNavModal = false, (err) => alert(err));
         }
     },
     mounted() {

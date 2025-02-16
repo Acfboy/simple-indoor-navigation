@@ -30,6 +30,5 @@ impl<R: Runtime> Mobilesensors<R> {
       .0
       .run_mobile_plugin("getOrientation", {})
       .map_err(Into::into)
-    // Ok(OrientationData { orientation: 0.0 })
   }
 }

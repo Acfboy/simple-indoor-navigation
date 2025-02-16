@@ -67,11 +67,10 @@ export default {
             const resp: OrientationData = await invoke("plugin:mobilesensors|get_orientation");
             this.orien = resp.orientation;
             this.updateArrow();
-        }, 10);
+        }, 200);
     },
 };
 </script>
 
 <style scoped>
-.arrow-up {}
 </style>

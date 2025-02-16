@@ -1,7 +1,7 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, hash::Hash, mem::swap};
 
-#[derive(Default, Deserialize, Hash, Clone, PartialEq, Eq)]
+#[derive(Default, Deserialize, Hash, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Mark {
     pub name: String,
@@ -25,7 +25,7 @@ impl Mark {
 
 pub type Corridor = Vec<Mark>;
 
-#[derive(Default, Deserialize, Hash, PartialEq, Eq)]
+#[derive(Default, Deserialize, Hash, PartialEq, Eq, Serialize, Clone)]
 pub struct Branch {
     pub direction: usize,
     pub mark: Mark,
@@ -35,7 +35,7 @@ pub static INF: usize = 0x3f3f3f3f;
 
 pub type Intersection = Vec<Branch>;
 
-#[derive(Default, Deserialize, Hash)]
+#[derive(Default, Deserialize, Hash, Serialize, Clone)]
 pub struct Map {
     edges: Vec<Corridor>,
     nodes: Vec<Intersection>,
@@ -103,12 +103,11 @@ impl Map {
             .edges
             .iter()
             .find(|&x| x.iter().find(|&y| y == mark).is_some());
-        if let None = corri {
-            if map.contains_key(mark) {
-                (Some(map.get(mark).unwrap()), None)
-            } else {
-                (None, None)
-            }
+        if map.contains_key(mark) {
+            (Some(map.get(mark).unwrap()), None)
+        } 
+        else if let None = corri {
+            (None, None)
         } else {
             let c = corri.unwrap();
             let mut res = (map.get(&c[0]).cloned(), map.get(&c[c.len() - 1]).cloned());
@@ -119,6 +118,16 @@ impl Map {
         }
     }
 
+    pub fn floor_number(inter: &Intersection) -> i32 {
+        let mut res = 0;
+        for c in inter {
+            if c.mark.elevator_floor != 0 {
+                res = c.mark.elevator_floor;
+            }
+        }
+        res
+    }
+    
     pub fn find_direction(inter: &Intersection, mark: &Mark) -> usize {
         let res = inter.iter().find(|&x| &x.mark == mark);
         if let None = res {

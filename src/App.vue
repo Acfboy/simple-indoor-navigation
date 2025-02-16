@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { NLayout, NLayoutSider, NLayoutContent, NLayoutFooter, NIcon, NFlex } from 'naive-ui'
+import { NLayout, NLayoutSider, NLayoutContent, NLayoutFooter, NIcon, NFlex, NButton } from 'naive-ui'
 
 import { ArrowBack } from '@vicons/ionicons5';
 import Intersection from "./components/intersection.vue";
@@ -59,7 +59,7 @@ function handleBack() {
 
     <n-layout v-show="page == 'info'">
       <n-layout-content has-sider :style="`height: ${screenHeight * 0.9}px; `">
-        <Info />
+        <!-- <Info /> -->
       </n-layout-content>
       <n-layout-footer bordered>
         <n-flex justify="center">
