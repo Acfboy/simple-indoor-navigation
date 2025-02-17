@@ -47,7 +47,7 @@ impl Navigator {
                         let set = elevators.get(&Map::identity(&c.mark)).ok_or("err")?;
                         for &floor in set {
                             let &v = mark2inter.get(floor).ok_or("err")?;
-                            let od = dis.get_mut(v).unwrap();
+                            let od = dis.get_mut(v).ok_or("err")?;
                             if *od > d + 1 {
                                 *od = d + 1;
                                 last_inter.entry(v).insert_entry((floor, u));
