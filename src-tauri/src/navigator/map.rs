@@ -1,171 +1,144 @@
+/// 这个模块实现地图的存储和加边加点删边删点，获得地图上一点到另一点的路线等。
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, hash::Hash, mem::swap};
+use std::collections::{HashMap, HashSet};
 
-#[derive(Default, Deserialize, Hash, Clone, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Mark {
-    pub name: String,
-    pub detail: String,
-    pub elevator_floor: i32,
+#[derive(Serialize, Deserialize, Default)]
+struct Position {
+    x: f32,
+    y: f32,
 }
 
-impl Mark {
-    pub fn full_name(&self) -> String {
-        let mut last = String::new();
-        if self.detail.len() != 0 {
-            if self.elevator_floor == 0 {
-                last = format!("({last})");
-            } else {
-                last = format!("({last}, {} 楼)", self.elevator_floor);
-            }
-        }
-        format!("{}{}", self.name, last)
-    }
+/// 一个节点里存储下面信息：
+/// - 节点名称，可以为空。
+/// - 在地图上的位置，单位是像素，未经缩放。
+/// - 在第几层，用于处理电梯和楼梯。
+/// - 电梯备注，用于区分是哪个电梯。
+#[derive(Serialize, Deserialize, Default)]
+struct Node {
+    name: String,
+    pos: Position,
+    floor: i32,
+    elevator: String,
 }
 
-pub type Corridor = Vec<Mark>;
+/// 电梯（楼梯）存储该电梯中每个节点的编号。
+#[derive(Serialize, Deserialize)]
+struct Elevator(HashSet<usize>);
 
-#[derive(Default, Deserialize, Hash, PartialEq, Eq, Serialize, Clone)]
-pub struct Branch {
-    pub direction: usize,
-    pub mark: Mark,
-}
-
-pub static INF: usize = 0x3f3f3f3f;
-
-pub type Intersection = Vec<Branch>;
-
-#[derive(Default, Deserialize, Hash, Serialize, Clone)]
+/// 地图包括点，边，电梯，和因为删除空出来的节点下标，用于回收被删除的节点.
+/// - 存图采用一个存一个编号的点对应的所有出边。
+/// - `elevators` 将电梯备注对应到相应的电梯。
+#[derive(Serialize, Deserialize)]
 pub struct Map {
-    edges: Vec<Corridor>,
-    nodes: Vec<Intersection>,
+    nodes: Vec<Node>,
+    edges: Vec<HashSet<usize>>,
+    elevators: HashMap<String, Elevator>,
+    node_garbage: HashSet<usize>,
 }
 
 impl Map {
-    pub fn identity(mark: &Mark) -> String {
-        mark.name.clone() + &mark.detail.clone()
-    }
-
-    pub fn elevators(&self) -> HashMap<String, Vec<&Mark>> {
-        let mut res = HashMap::new();
-        self.nodes
-            .iter()
-            .flatten()
-            .filter_map(|x| {
-                if x.mark.elevator_floor != 0 {
-                    Some(&x.mark)
-                } else {
-                    None
-                }
-            })
-            .for_each(|x| {
-                let id = Self::identity(x);
-                let mut c = res.get_mut(&id);
-                if c.is_none() {
-                    res.insert(id.clone(), Vec::new());
-                    c = res.get_mut(&id);
-                }
-                c.unwrap().push(x);
-            });
-        res
-    }
-
-    pub fn edge_table(&self) -> HashMap<&Mark, &Mark> {
-        let mut res = HashMap::new();
-        for edge in &self.edges {
-            if edge[0].elevator_floor != 0 || edge[1].elevator_floor != 0 {
-                continue;
-            }
-            res.insert(&edge[0], &edge[edge.len() - 1]);
-            res.insert(&edge[edge.len() - 1], &edge[0]);
-        }
-        res
-    }
-
-    pub fn node_table(&self) -> (HashMap<&Mark, &Intersection>, HashMap<&Intersection, usize>) {
-        let mut mark2inter = HashMap::new();
-        let mut dis = HashMap::new();
-        for c in &self.nodes {
-            for branch in c {
-                mark2inter.insert(&branch.mark, c);
-            }
-            dis.insert(c, INF);
-        }
-        (mark2inter, dis)
-    }
-
-    pub fn init_intersection<'a>(
-        &self,
-        mark: &Mark,
-        map: &HashMap<&Mark, &'a Intersection>,
-    ) -> (Option<&'a Intersection>, Option<&'a Intersection>) {
-        let corri = self
-            .edges
-            .iter()
-            .find(|&x| x.iter().find(|&y| y == mark).is_some());
-        if map.contains_key(mark) {
-            (Some(map.get(mark).unwrap()), None)
-        } 
-        else if let None = corri {
-            (None, None)
-        } else {
-            let c = corri.unwrap();
-            let mut res = (map.get(&c[0]).cloned(), map.get(&c[c.len() - 1]).cloned());
-            if res.0.is_none() {
-                swap(&mut res.0, &mut res.1);
-            }
+    fn new_node_id(&mut self) -> usize {
+        if !self.node_garbage.is_empty() {
+            let res = self.node_garbage.iter().nth(0).cloned().unwrap();
+            self.node_garbage.remove(&res);
             res
-        }
-    }
-
-    pub fn floor_number(inter: &Intersection) -> i32 {
-        let mut res = 0;
-        for c in inter {
-            if c.mark.elevator_floor != 0 {
-                res = c.mark.elevator_floor;
-            }
-        }
-        res
-    }
-    
-    pub fn find_direction(inter: &Intersection, mark: &Mark) -> usize {
-        let res = inter.iter().find(|&x| &x.mark == mark);
-        if let None = res {
-            0
         } else {
-            res.unwrap().direction
+            self.nodes.push(Node::default());
+            self.nodes.len() - 1
         }
     }
 
-    pub fn turn(direction: usize) -> usize {
-        (direction + 180) % 360
+    /// 加点，同时加入电梯。
+    pub fn add_node(&mut self, name: String, pos: Position, floor: i32, elevator: String) {
+        let index = self.new_node_id();
+        if !elevator.is_empty() {
+            self.elevators
+                .entry(elevator.clone())
+                .and_modify(|x| {
+                    x.0.insert(index);
+                })
+                .or_insert(Elevator(HashSet::from([index])));
+        }
+        self.nodes[index] = Node {
+            name,
+            pos,
+            floor,
+            elevator,
+        };
     }
 
-    pub fn init_direction<'a>(
-        &self,
-        mark: &Mark,
-        inter: &'a Intersection,
-    ) -> Option<(usize, &'a Mark)> {
-        let corri_opt = self
+    fn check_node_valid(&self, index: usize) -> Result<(), String> {
+        if index >= self.nodes.len() {
+            Err("node index too large".to_string())
+        } else if self.node_garbage.contains(&index) {
+            Err("the node was removed".to_string())
+        } else {
+            Ok(())
+        }
+    }
+
+    /// 加边。如果边已经存在，则返回 `Ok(())` 但图不改变。
+    pub fn add_edge(&mut self, from: usize, to: usize) -> Result<(), String> {
+        self.check_node_valid(from)?;
+        self.check_node_valid(to)?;
+        self.edges[from].insert(to);
+        self.edges[to].insert(from);
+        Ok(())
+    }
+
+    /// 标记删除一个点，同时删除该点涉及的边和电梯中涉及的该点。但不改变那个点存储的数据。
+    /// 点不存在时返回错误。
+    pub fn remove_node(&mut self, index: usize) -> Result<(), String> {
+        self.check_node_valid(index)?;
+        self.node_garbage.insert(index);
+        self.edges[index].clear();
+        self.edges
+            .iter_mut()
+            .filter(|x| x.contains(&index))
+            .for_each(|x| {
+                x.remove(&index);
+            });
+        if !self.nodes[index].elevator.is_empty() {
+            self.elevators
+                .get_mut(&self.nodes[index].elevator.clone())
+                .unwrap()
+                .0
+                .remove(&index);
+        }
+        Ok(())
+    }
+
+    /// 删边。边不存在时返回 `Ok`，但端点不合法时返回 `Err`。
+    pub fn remove_edge(&mut self, from: usize, to: usize) -> Result<(), String> {
+        self.check_node_valid(from)?;
+        self.check_node_valid(to)?;
+        self.edges[from].remove(&to);
+        self.edges[to].remove(&from);
+        Ok(())
+    }
+
+    /// 从 serde_json 构造地图文件中的地图后，判断地图是否合法。由于格式已经正确，不合法情况只有：
+    /// - 电梯或边中出现不合法的点。
+    pub fn is_valid(&self) -> bool {
+        let edge_invalid = self
             .edges
             .iter()
-            .find(|&x| x.iter().find(|&y| y == mark).is_some());
-        if corri_opt.is_none() {
-            return None;
-        }
-        let corri = corri_opt.unwrap();
-        if *mark == corri[0] || *mark == corri[corri.len() - 1] {
-            return None;
-        }
-        for c in inter {
-            if c.mark == corri[0] || c.mark == corri[corri.len() - 1] {
-                return Some((Self::turn(c.direction), &c.mark));
-            }
-        }
-        None
-    }
-
-    pub fn inter2marks(inter: &Intersection) -> Vec<String> {
-        inter.iter().map(|x| x.mark.name.clone()).collect()
+            .find(|&x| {
+                x.iter()
+                    .find(|&y| self.check_node_valid(*y).is_err())
+                    .is_some()
+            })
+            .is_some();
+        let elevator_invalid = self
+            .elevators
+            .iter()
+            .find(|x| {
+                x.1 .0
+                    .iter()
+                    .find(|&y| self.check_node_valid(*y).is_err())
+                    .is_some()
+            })
+            .is_some();
+        !(elevator_invalid || edge_invalid)
     }
 }
