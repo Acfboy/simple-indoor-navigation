@@ -1,11 +1,12 @@
-/// 这个模块实现地图的存储和加边加点删边删点，获得地图上一点到另一点的路线等。
+/// 这个模块实现地图的存储和加边加点删边删点，获得地图上导航路线的功能在 `navigator.rs` 里实现。
+
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Serialize, Deserialize, Default)]
-struct Position {
-    x: f32,
-    y: f32,
+pub struct Position {
+    pub x: f64,
+    pub y: f64,
 }
 
 /// 一个节点里存储下面信息：
@@ -13,26 +14,29 @@ struct Position {
 /// - 在地图上的位置，单位是像素，未经缩放。
 /// - 在第几层，用于处理电梯和楼梯。
 /// - 电梯备注，用于区分是哪个电梯。
+/// - 节点编号。
 #[derive(Serialize, Deserialize, Default)]
-struct Node {
+pub struct Node {
     name: String,
-    pos: Position,
-    floor: i32,
-    elevator: String,
+    pub pos: Position,
+    pub floor: i32,
+    pub elevator: String,
+    pub index: usize,
 }
+
 
 /// 电梯（楼梯）存储该电梯中每个节点的编号。
 #[derive(Serialize, Deserialize)]
-struct Elevator(HashSet<usize>);
+pub struct Elevator(pub HashSet<usize>);
 
 /// 地图包括点，边，电梯，和因为删除空出来的节点下标，用于回收被删除的节点.
 /// - 存图采用一个存一个编号的点对应的所有出边。
 /// - `elevators` 将电梯备注对应到相应的电梯。
 #[derive(Serialize, Deserialize)]
 pub struct Map {
-    nodes: Vec<Node>,
-    edges: Vec<HashSet<usize>>,
-    elevators: HashMap<String, Elevator>,
+    pub nodes: Vec<Node>,
+    pub edges: Vec<HashSet<usize>>,
+    pub elevators: HashMap<String, Elevator>,
     node_garbage: HashSet<usize>,
 }
 
@@ -64,10 +68,11 @@ impl Map {
             pos,
             floor,
             elevator,
+            index,
         };
     }
 
-    fn check_node_valid(&self, index: usize) -> Result<(), String> {
+    pub fn check_node_valid(&self, index: usize) -> Result<(), String> {
         if index >= self.nodes.len() {
             Err("node index too large".to_string())
         } else if self.node_garbage.contains(&index) {
