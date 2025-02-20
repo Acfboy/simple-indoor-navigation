@@ -25,8 +25,8 @@ impl Map {
     
     /// 在地图从 `s` 出发走到每一个点，并返回每个点的最短路和路径上上一个点。
     fn find_path(&self, s: usize) -> (Vec<usize>, Vec<usize>) {
-        let mut dis = vec![self.nodes.len(); INF];
-        let mut last = vec![self.nodes.len(); INF];
+        let mut dis = vec![INF; self.nodes.len()];
+        let mut last = vec![INF; self.nodes.len()];
         let mut q = VecDeque::new();
         dis[s] = 0;
         q.push_back(s);
@@ -70,4 +70,29 @@ impl Map {
 struct Navigator<'a> {
     map: Map,
     guide: Guidance<'a>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{map::Position, *};
+
+    #[test]
+    fn test_find_path() {
+        let mut map = Map::default();
+        for _ in 0 .. 10 {
+            map.add_node(String::new(), Position{ x: 0.0, y: 0.0 }, 0, String::new());
+        }
+        map.add_edge(1, 2).unwrap();
+        map.add_edge(1, 3).unwrap();
+        map.add_edge(6, 8).unwrap();        
+        map.add_edge(1, 4).unwrap();
+        map.add_edge(2, 8).unwrap();
+        map.add_edge(3, 5).unwrap();
+        map.add_edge(5, 6).unwrap();
+        map.add_edge(3, 4).unwrap();
+        map.add_edge(4, 6).unwrap();
+        let (dis, last) = map.find_path(1);
+        assert_eq!(dis, vec![INF, 0, 1, 1, 1, 2, 2, INF, 2, INF]);
+        assert_eq!(last, vec![INF, INF, 1, 1, 1, 3, 4, INF, 2, INF]);
+    }
 }

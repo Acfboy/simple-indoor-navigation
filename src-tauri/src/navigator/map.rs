@@ -17,7 +17,7 @@ pub struct Position {
 /// - 节点编号。
 #[derive(Serialize, Deserialize, Default)]
 pub struct Node {
-    name: String,
+    pub name: String,
     pub pos: Position,
     pub floor: i32,
     pub elevator: String,
@@ -32,7 +32,7 @@ pub struct Elevator(pub HashSet<usize>);
 /// 地图包括点，边，电梯，和因为删除空出来的节点下标，用于回收被删除的节点.
 /// - 存图采用一个存一个编号的点对应的所有出边。
 /// - `elevators` 将电梯备注对应到相应的电梯。
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct Map {
     pub nodes: Vec<Node>,
     pub edges: Vec<HashSet<usize>>,
@@ -48,6 +48,7 @@ impl Map {
             res
         } else {
             self.nodes.push(Node::default());
+            self.edges.push(HashSet::new());
             self.nodes.len() - 1
         }
     }

@@ -44,7 +44,7 @@ impl<'a> Guidance<'a> {
     /// 根据显示区域的大小划定每一步要走的路线，并存在 `steps` 内。  
     /// 若有步骤只能包含进单一节点，返回错误。  
     /// 电梯（楼梯）节点单独多加一步。
-    pub fn setp_by_step(&mut self, size: ScreenSize) -> Result<(), String> {
+    pub fn step_by_step(&mut self, size: ScreenSize) -> Result<(), String> {
         let mut it = self.path.0.iter().peekable();
         let mut beg = it.next().ok_or("path not exist")?;
         let mut low_bound = ScreenSize(0., 0.);
@@ -82,6 +82,7 @@ impl<'a> Guidance<'a> {
         if self.cur_step >= self.steps.len() {
             Err("no next step".to_string())
         } else {
+            self.cur_step += 1;
             Ok(())
         }
     }
@@ -90,6 +91,7 @@ impl<'a> Guidance<'a> {
         if self.cur_step == 0 {
             Err("no prev step".to_string())
         } else {
+            self.cur_step -= 1;
             Ok(())
         }
     }
@@ -99,6 +101,65 @@ impl<'a> Guidance<'a> {
             Err("steps haven't generated".to_string())
         } else {
             Ok(self.steps[self.cur_step].clone())
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::navigator::map::Position;
+    use super::*;
+
+    #[test]
+    fn test_step_by_step() {
+        let mut guide = Guidance::default();
+        let nodes = vec![
+            Node {
+                name: "1".to_string(),
+                pos: Position { x: 1.0, y: 1.0 },
+                floor: 1,
+                elevator: String::new(),
+                index: 0,
+            },
+            Node {
+                name: "1".to_string(),
+                pos: Position { x: 1.0, y: 2.0 },
+                floor: 1,
+                elevator: String::new(),
+                index: 1,
+            },
+            Node {
+                name: "1".to_string(),
+                pos: Position { x: 2.0, y: 3.0 },
+                floor: 1,
+                elevator: "elevator".to_string(),
+                index: 2,
+            },
+            Node {
+                name: "1".to_string(),
+                pos: Position { x: 2.0, y: 3.0 },
+                floor: 2,
+                elevator: "elevator".to_string(),
+                index: 3,
+            },
+            Node {
+                name: "1".to_string(),
+                pos: Position { x: 2.0, y: 2.0 },
+                floor: 2,
+                elevator: String::new(),
+                index: 4,
+            },
+        ];
+        for node in &nodes {
+            guide.push(node);
+        }
+        guide.step_by_step(ScreenSize(2.0, 2.0)).unwrap();
+        let expected_indices = vec![(0, 1), (1, 2), (2, 3), (3, 4)];
+        for (expected_0, expected_1) in expected_indices {
+            let current = guide.query().unwrap();
+            assert_eq!(current.0[0].index, expected_0);
+            assert_eq!(current.0[1].index, expected_1);
+            guide.next_step().unwrap();
         }
     }
 }
