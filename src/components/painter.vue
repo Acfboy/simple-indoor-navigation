@@ -1,94 +1,30 @@
 <template>
   <n-layout>
-    <n-layout-content :style="`height: ${screenHeight * 0.9}px`">
-      <n-tabs type="line" animated style="padding: 0 20px 0 20px; height: 100%" @update:value="refreshMapList">
-        <n-tab-pane name="add" tab="添加">
-          <n-text type="info">
-            {{ '前方方位角: ' + orien }}
-          </n-text>
-          <n-flex verticle>
-            <n-card title="添加节点" :style="`height: ${screenHeight * 0.4}px; overflow-y: auto; `">
-              添加路口每个方向的地标，然后添加节点。
-              <n-table :bordered="false" :single-line="false" size="small">
-                <thead>
-                  <tr>
-                    <th>方向</th>
-                    <th>主名称</th>
-                    <th>辅助名称</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="item in curInsec">
-                    <td>{{ item.direction }}</td>
-                    <td>{{ item.mark.name }}</td>
-                    <td>{{ item.mark.detail }}</td>
-                  </tr>
-                </tbody>
-              </n-table>
-              <template #footer>
-                <n-flex justify="end">
-                  <n-button tertiary type="success" @click="showAddMarkToInsec">
-                    添加地标
-                  </n-button>
-                  <n-button tertiary type="warning" @click="curInsecPop">
-                    撤销添加
-                  </n-button>
-                  <n-button strong secondary type="primary" @click="addNode">
-                    添加节点
-                  </n-button>
-                </n-flex>
-              </template>
-            </n-card>
-            <n-card title="添加走廊" :style="`height: ${screenHeight * 0.4}px; overflow-y: auto;`">
-              添加走廊中每个地标，确保两端地标在最前和最后，然后添加地标。
-              <n-table :bordered="false" :single-line="false" size="small">
-                <thead>
-                  <tr>
-                    <th>主名称</th>
-                    <th>辅助名称</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="item in curCorri">
-                    <td>{{ item.name }}</td>
-                    <td>{{ item.detail }}</td>
-                  </tr>
-                </tbody>
-              </n-table>
-              <template #footer>
-                <n-flex justify="end">
-                  <n-button tertiary type="success" @click="showAddMarkToCorri">
-                    添加地标
-                  </n-button>
-                  <n-button tertiary type="warning" @click="curCorriPop">
-                    撤销添加
-                  </n-button>
-                  <n-button strong secondary type="primary" @click="addEdge">
-                    添加走廊
-                  </n-button>
-                </n-flex>
-              </template>
-            </n-card>
-          </n-flex>
-        </n-tab-pane>
-        <n-tab-pane name="del" tab="删除">
-          <n-card title="删除节点或走廊" :style="`height: ${screenHeight * 0.8}px; overflow-y: auto;`">
-            勾选要删除的内容，点击删除选中。
-            <n-checkbox v-for="item in delList" v-model:checked="item.checked">
-              {{ item.label }}
-            </n-checkbox>
-            <template #footer>
-              <n-flex justify="end">
-                <n-button secondary type="error" @click="delThat">
-                  删除选中
-                </n-button>
-              </n-flex>
-            </template>
-          </n-card>
-        </n-tab-pane>
+    <n-layout-header :style="`height: ${screenHeight * 0.5}px;`" bordered>
+      <div v-for="(item, index) in images">
+        <Editmap v-show="index + 1 == floor" :image-url="item" :mapHeight="screenHeight * 0.5" :mapWidth="screenWidth"
+          :type="editType" :cur-floor="index" />
+      </div>
+    </n-layout-header>
+    <n-layout-content :style="`height: ${screenHeight * 0.4}px`">
+      <n-tabs :value="editType" @on-update:value="updateNodes">
+        <n-tab name="add" tab="添加"></n-tab>
+        <n-tab name="del" tab="删除"></n-tab>
+        <n-tab name="mark" tab="标注"></n-tab>
       </n-tabs>
-    </n-layout-content>
-    <n-layout-footer bordered>
+      <n-pagination v-model:page="floor" :page-count="images.length" />
+      <n-button secondary @click="addFloor">
+        添加一层
+      </n-button>
+      <n-card v-if="editType == 'mark'" title="标注选中点">
+        <div v-for="item in nodeList">
+          <div v-if="item.index == selectedIndex">
+            节点名称 <n-input v-model:value="item.name" type="text" placeholder="节点名称" @on-blur="markNode" />
+            节点名称 <n-input v-model:value="item.elevator" type="text" placeholder="电梯/楼梯名 非电梯/楼梯则留空"
+              @on-blur="markNode" />
+          </div>
+        </div>
+      </n-card>
       <n-flex justify="space-between">
         <n-button @click="handleBack" text>
           <n-icon>
@@ -103,44 +39,8 @@
           保存地图
         </n-button>
       </n-flex>
-    </n-layout-footer>
+    </n-layout-content>
   </n-layout>
-
-  <n-modal v-model:show="addMarkWithDire">
-    <n-card style="width: 90%" title="添加地标" :bordered="false" size="huge" role="dialog" aria-modal="true">
-      <n-flex vertical>
-        方位角
-        <n-input type="text" size="small" :placeholder="String(orien)" :disabled="true" />
-        主名称
-        <n-input v-model:value="curMark.name" placeholder="主名称" type="text" />
-        辅助名称（在主名称相同时用来区分）
-        <n-input v-model:value="curMark.detail" placeholder="辅助名称" type="text" />
-        层数（若不是电梯/楼梯，保持 0）
-        <n-input-number v-model:value="curMark.elevatorFloor" />
-        <n-flex justify="end">
-          <n-button type="success" @click="addMarkToInsec">
-            添加
-          </n-button>
-        </n-flex>
-      </n-flex>
-    </n-card>
-  </n-modal>
-
-  <n-modal v-model:show="addMark">
-    <n-card style="width: 90%" title="添加地标" :bordered="false" size="huge" role="dialog" aria-modal="true">
-      <n-flex vertical>
-        主名称
-        <n-input v-model:value="curMark.name" placeholder="主名称" type="text" />
-        辅助名称（在主名称相同时用来区分）
-        <n-input v-model:value="curMark.detail" placeholder="辅助名称" type="text" />
-        <n-flex justify="end">
-          <n-button type="success" @click="addMarkToCorri">
-            添加
-          </n-button>
-        </n-flex>
-      </n-flex>
-    </n-card>
-  </n-modal>
 
   <n-modal v-model:show="showSaveMap">
     <n-card style="width: 90%" title="保存地图" :bordered="false" size="huge" role="dialog" aria-modal="true">
@@ -158,110 +58,99 @@
 </template>
 
 <script lang="ts">
-import {
-  NCard, NLayout, NLayoutContent, NLayoutFooter, NFlex, NIcon, NText, NLayoutHeader, NTabs, NTabPane, NForm,
-  NFormItem, NInput, NCheckbox, NButton, NTable, NModal, NInputNumber, NTransfer, useMessage,
-} from 'naive-ui';
-import { exists, BaseDirectory, create, writeTextFile, mkdir } from '@tauri-apps/plugin-fs';
-import { ArrowBack, SaveOutline } from '@vicons/ionicons5';
-import { invoke } from '@tauri-apps/api/core';
+import { NLayout, NLayoutContent, NLayoutHeader, NTabs, NTab, NPagination, NButton, NInput, NFlex, NCard, NModal } from "naive-ui";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { defineComponent, onMounted, ref } from "vue";
+import Editmap from "./painter/editmap.vue";
+import { BaseDirectory, create, exists, mkdir, writeTextFile } from "@tauri-apps/plugin-fs";
 
-type Corridor = Mark[];
-
-type Mark = {
-  name: string,
-  detail: string,
-  elevatorFloor: number
-}
-
-type Branch = {
-  direction: number,
-  mark: Mark
-}
-
-type Intersection = Branch[];
-
-type OriginalMap = {
-  nodes: Intersection[],
-  edges: Corridor[]
-}
-
-type CheckboxItem = {
-  label: string,
-  type: string,
-  id: number,
-  checked: false
-}
-
-type CheckboxList = CheckboxItem[];
-
-
-function markName(x: Mark) {
-  let s: string = '';
-  s = x.name;
-  if (x.detail.length) s += '(' + x.detail + ')';
-  if (x.elevatorFloor) s += x.elevatorFloor + '层';
-  return s;
-}
-
-export default {
+export default defineComponent({
+  name: "Map",
   components: {
-    NCard, NLayout, NLayoutContent, NLayoutFooter, NFlex, NIcon, SaveOutline,
-    ArrowBack, NText, NLayoutHeader, NTabs, NTabPane, NForm, NFormItem,
-    NInput, NCheckbox, NButton, NTable, NModal, NInputNumber, NTransfer, useMessage
+    NLayout, Editmap, NLayoutHeader, NModal, NLayoutContent,
+    NTabs, NTab, NPagination, NButton, NInput, NFlex, NCard
   },
-  props: ['screenHeight'],
-  data() {
-    return {
-      orien: 0,
-      map: {
-        nodes: [],
-        edges: []
-      } as OriginalMap,
-      curMark: {
-        name: "",
-        detail: "",
-        elevatorFloor: 0
-      } as Mark,
-      curInsec: [] as Intersection,
-      curFloor: "",
-      addMarkWithDire: false,
-      curCorri: [] as Corridor,
-      addMark: false,
-      delOptions: [],
-      delList: [] as CheckboxList,
-      showSaveMap: false,
-      mapName: ""
+  setup() {
+    const screenHeight = ref(window.innerHeight);
+    const screenWidth = ref(window.innerWidth);
+    const editType = ref("add");
+    const floorNumber = ref(0);
+    const floor = ref(0);
+    const selectedIndex = ref(-1);
+
+    type Position = {
+      x: number,
+      y: number
+    };
+
+    type Node = {
+      name: string,
+      pos: Position,
+      floor: number,
+      elevator: string,
+      index: number,
     }
-  },
-  methods: {
-    async saving() {
+
+    const nodeList = ref<Node[]>([]);
+    const images = ref<string[]>([]);
+    const mapName = ref<string>("");
+
+    const updateNodes = async () => {
+      nodeList.value = await invoke('cur_node_list');
+    }
+
+    const markNode = async () => {
+      const cur = nodeList.value.find(e => e.index == selectedIndex.value);
+      if (cur) {
+        await invoke('mark_node', {
+          index: cur.index,
+          name: cur.name,
+          elevator: cur.elevator
+        });
+      }
+    }
+
+    const emit = defineEmits<{ (e: string, payload: string): void; }>();
+
+    function emitEvent(message: string, payload: string) {
+      emit(message, payload);
+    }
+
+    const handleBack = () => {
+      emitEvent('switch', 'main')
+    };
+
+    const execSave = async (mapName: string, data: string) => {
       const dirExists = await exists('maps', {
         baseDir: BaseDirectory.AppData
-      });
-      const filename = 'maps/' + this.mapName + '.json';
-      const fileExists = await exists(filename, {
-        baseDir: BaseDirectory.AppData,
       });
       if (!dirExists) {
         await mkdir('maps', {
           baseDir: BaseDirectory.AppData,
         });
       }
+      const filename = 'maps/' + mapName + '.json';
+      const fileExists = await exists(filename, {
+        baseDir: BaseDirectory.AppData,
+      });
       if (!fileExists) {
         await create(filename, { baseDir: BaseDirectory.AppData });
       }
-      const contents = JSON.stringify(this.map);
-      await writeTextFile(filename, contents, {
-        baseDir: BaseDirectory.Data,
+      await writeTextFile(filename, data, {
+        baseDir: BaseDirectory.AppData,
       });
-    },
-    async saveMap() {
-      if (this.mapName.length) {
+    }
+
+    const saveMap = async () => {
+      if (mapName.value.length) {
         try {
-          await this.saving();
+          let data: string = await invoke("get_store_data", {
+            images: images.value,
+          });
+          execSave(mapName.value, data);
           alert("保存成功")
-          this.handleBack();
+          handleBack();
         }
         catch (err) {
           alert(err);
@@ -270,132 +159,55 @@ export default {
       else {
         alert('地图名称不能为空');
       }
-    },
-    toSaveMap() {
-      this.showSaveMap = true;
-    },
-    delThat() {
-      let nodesDelId = [];
-      let edgesDelId = [];
-      for (let cur of this.delList) {
-        if (cur.checked) {
-          if (cur.type == "insec")
-            nodesDelId.push(cur.id);
-          else edgesDelId.push(cur.id);
-        }
-      }
-      nodesDelId.sort((a, b) => b - a);
-      edgesDelId.sort((a, b) => b - a);
-      for (let i of nodesDelId) {
-        this.map.nodes.splice(i, 1);
-      }
-      for (let i of edgesDelId) {
-        this.map.edges.splice(i, 1);
-      }
-      this.refreshMapList();
-    },
-    refreshMapList() {
-      this.delList = []
-      this.delList = this.delList.concat(this.map.nodes.map((cur: Intersection, index: number) => {
-        return {
-          label: markName(cur[0].mark) + ' 附近路口',
-          type: "insec",
-          id: index,
-          checked: false
-        }
-      }));
-      this.delList = this.delList.concat(this.map.edges.map((cur: Corridor, index: number) => {
-        return {
-          label: markName(cur[0]) + ' 至 ' + markName(cur[cur.length - 1]) + ' 走廊',
-          type: "corri",
-          id: index,
-          checked: false
-        }
-      }));
-    },
-    addNode() {
-      if (this.curInsec.length == 0) {
-        alert("不能添加空节点");
-      } else {
-        let arr = new Array();
-        let set = new Set();
-        for (const c of this.curInsec) {
-          arr.push(c.mark.name + c.mark.detail);
-          set.add(c.mark.name + c.mark.detail);
-        }
-        if (arr.length != set.size) {
-          alert('不同地标请设置不同的名称。');
-        } else {
-          this.map.nodes.push(this.curInsec);
-        }
-      }
-      this.curInsec = []
-    },
-    addEdge() {
-      if (this.curCorri.length == 0) {
-        alert("不能添加空走廊");
-      }
-      else this.map.edges.push(this.curCorri);
-      this.curCorri = []
-    },
-    curInsecPop() {
-      this.curInsec.pop();
-    },
-    curCorriPop() {
-      this.curCorri.pop();
-    },
-    handleBack() {
-      this.$emit('switch', 'main')
-    },
-    addMarkToInsec() {
-      const curBranch: Branch = {
-        direction: this.orien,
-        mark: this.curMark
-      };
-      if (this.curMark.elevatorFloor > 163 || this.curMark.elevatorFloor < -163) {
-        alert('世界最高楼哈利法塔的层数是 163，我觉得你这层数不对。');
-      }
-      else {
-        this.curInsec.push(curBranch);
-        this.addMarkWithDire = false;
-      }
-    },
-    showAddMarkToInsec() {
-      this.curMark = {
-        name: "",
-        detail: "",
-        elevatorFloor: 0
-      };
-      this.addMarkWithDire = true;
-    },
-    addMarkToCorri() {
-      this.curCorri.push(this.curMark);
-      this.addMark = false;
-    },
-    showAddMarkToCorri() {
-      this.curMark = {
-        name: "",
-        detail: "",
-        elevatorFloor: 0
-      };
-      this.addMark = true;
-    }
-  },
-  mounted() {
-    setInterval(async () => {
-      type OrientationData = {
-        orientation: number;
-      };
-      const resp: OrientationData = await invoke("plugin:mobilesensors|get_orientation");
-      this.orien = Math.floor(resp.orientation);
-    }, 200);
-  },
-};
-</script>
+    };
 
-<style scoped>
-.n-layout-footer {
-  padding: 24px;
-  background-color: white;
-}
-</style>
+    const showSaveMap = ref(false);
+
+    const toSaveMap = () => {
+      showSaveMap.value = true;
+    };
+
+    const addFloor = async () => {
+      try {
+        const binary = new Blob(await invoke('selectImage'));
+        let reader = new FileReader();
+        reader.readAsDataURL(binary);
+        reader.onload = () => {
+          if (typeof reader.result === 'string') {
+            images.value.push(reader.result);
+          }
+          else throw new Error("图片没读出");
+        }
+      } catch (e) {
+        alert(e);
+      }
+    }
+
+    onMounted(async () => {
+      await listen<number>('select-node', (event) => {
+        markNode();
+        selectedIndex.value = event.payload;
+      });
+    });
+
+    return {
+      screenHeight,
+      screenWidth,
+      editType,
+      updateNodes,
+      floor,
+      floorNumber,
+      addFloor,
+      images,
+      nodeList,
+      selectedIndex,
+      markNode,
+      showSaveMap,
+      mapName,
+      saveMap,
+      handleBack,
+      toSaveMap,
+    };
+  },
+});
+</script>

@@ -1,21 +1,24 @@
 <template>
-    <n-timeline v-if="begin.length==0">
-        <n-timeline-item type="error" content="导航未开始" />
-        <n-timeline-item type="info" content="按照以下步骤开始导航" line-type="dashed"/>
-        <n-timeline-item content="点击底部新导航按钮" line-type="dashed"/>
-        <n-timeline-item content="移动到附近教室等地标" line-type="dashed" />
-        <n-timeline-item content="输入信息" line-type="dashed"/>
-        <n-timeline-item content="开始导航" line-type="dashed"/>
-    </n-timeline>
-    <n-timeline v-else>
-        <n-timeline-item type="error" title="我的位置" :content="begin" :line-type="cur ? 'dashed' : 'default'"/>
-        <n-timeline-item type="info" v-for="(item, i) in path" :content="item" :line-type="i < cur ? 'default' : 'dashed'"/>
-        <n-timeline-item type="success" title="目的地" :content="end" line-type="dashed"/>
-    </n-timeline>
+    <n-card title="路线">
+        <n-timeline horizontal v-if="begin.length == 0">
+            <n-timeline-item type="error" content="导航未开始" />
+            <n-timeline-item type="info" content="按照以下步骤开始导航" line-type="dashed" />
+            <n-timeline-item content="点击底部新导航按钮" line-type="dashed" />
+            <n-timeline-item content="移动到附近教室等地标" line-type="dashed" />
+            <n-timeline-item content="输入信息" line-type="dashed" />
+            <n-timeline-item content="开始导航" line-type="dashed" />
+        </n-timeline>
+        <n-timeline horizontal v-else>
+            <n-timeline-item type="error" title="我的位置" :content="begin" :line-type="cur ? 'dashed' : 'default'" />
+            <n-timeline-item type="info" v-for="(item, i) in path" :content="item"
+                :line-type="i < cur ? 'default' : 'dashed'" />
+            <n-timeline-item type="success" title="目的地" :content="end" line-type="dashed" />
+        </n-timeline>
+    </n-card>
 </template>
 
 <script lang="ts">
-import { NTimeline, NTimelineItem } from 'naive-ui';
+import { NTimeline, NTimelineItem, NCard } from 'naive-ui';
 import { listen } from '@tauri-apps/api/event';
 
 type Route = {
@@ -27,7 +30,7 @@ type Route = {
 
 export default {
     components: {
-        NTimeline, NTimelineItem
+        NTimeline, NTimelineItem, NCard
     },
     data() {
         return {

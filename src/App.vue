@@ -1,24 +1,23 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { NLayout, NLayoutSider, NLayoutContent, NLayoutFooter, NIcon, NFlex, NButton } from 'naive-ui'
+import { NLayout, NLayoutContent, NLayoutFooter, NIcon, NFlex, NButton } from 'naive-ui'
 
 import { ArrowBack } from '@vicons/ionicons5';
-import Intersection from "./components/intersection.vue";
-import Timeline from "./components/timeline.vue";
-import Compass from "./components/compass.vue";
+import Map from "./components/map.vue";
 import Prompt from "./components/prompt.vue";
 import Footer from "./components/footer.vue";
 import Painter from "./components/painter.vue";
 import Manager from "./components/manager.vue";
 
-const screenHeight = window.screen.height * 0.99;
-const screenWidth = window.screen.width;
+const screenHeight = window.innerHeight;
+const screenWidth = window.innerWidth;
 
-const promptHeight = screenHeight * 0.20;
+const promptHeight = screenHeight * 0.2;
+// const timelineHeight = screenHeight * 0.2;
 const mainHeight = screenHeight * 0.7;
-const timelineWidth = ref(screenWidth * 0.2);
 
-const page = ref("main");
+
+const page = ref("paint");
 
 function handleSwitch(nextPage: string) {
   page.value = nextPage
@@ -34,31 +33,27 @@ function handleBack() {
 <template>
   <main class="container">
 
-    <n-layout v-show="page == 'main'">
-      <n-layout-content has-sider :style="`height: ${mainHeight}px; `">
-        <n-layout-sider collapse-mode="width" :collapsed-width="timelineWidth" :width="timelineWidth * 2"
-          show-trigger="arrow-circle" content-style="padding: 24px;" bordered>
-          <Timeline />
-        </n-layout-sider>
-        <n-layout-content>
-          <div :style="`height: ${mainHeight * 0.5}px;`">
-            <Intersection />
-          </div>
-          <div :style="`height: ${mainHeight * 0.5}px;`">
-            <Compass />
-          </div>
-        </n-layout-content>
+    <n-layout v-if="page == 'main'">
+      <!-- <n-layout-content :content-style="`height: ${timelineHeight}px; overflow: auto; padding:24px;`">
+        <Timeline />
+      </n-layout-content> -->
+
+      <n-layout-content :style="`height: ${mainHeight}px;`">
+        <Map :screenWidth="screenWidth" :screenHeight="mainHeight"/>
       </n-layout-content>
-      <n-layout-content :style="`height: ${promptHeight}px;`" bordered>
+
+      <n-layout-content bordered :style="`height: ${promptHeight}px;`">
         <Prompt />
       </n-layout-content>
+
       <n-layout-footer bordered>
         <Footer @switch="handleSwitch" />
       </n-layout-footer>
+
     </n-layout>
 
     <n-layout v-show="page == 'info'">
-      <n-layout-content has-sider :style="`height: ${screenHeight * 0.9}px; `">
+      <n-layout-content :style="`height: ${screenHeight * 0.9}px; `">
         <!-- <Info /> -->
       </n-layout-content>
       <n-layout-footer bordered>
@@ -89,7 +84,7 @@ function handleBack() {
       </n-layout-footer>
     </n-layout>
 
-    <Painter @switch="handleSwitch" :screenHeight="screenHeight" v-if="page == 'paint'"/>
+    <Painter @switch="handleSwitch" v-if="page == 'paint'" />
 
 
   </main>

@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, Clone)]
 pub struct Position {
     pub x: f64,
     pub y: f64,
@@ -15,24 +15,24 @@ pub struct Position {
 /// - 在第几层，用于处理电梯和楼梯。
 /// - 电梯备注，用于区分是哪个电梯。
 /// - 节点编号。
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, Clone)]
 pub struct Node {
     pub name: String,
     pub pos: Position,
-    pub floor: i32,
+    pub floor: usize,
     pub elevator: String,
     pub index: usize,
 }
 
 
 /// 电梯（楼梯）存储该电梯中每个节点的编号。
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Elevator(pub HashSet<usize>);
 
 /// 地图包括点，边，电梯，和因为删除空出来的节点下标，用于回收被删除的节点.
 /// - 存图采用一个存一个编号的点对应的所有出边。
 /// - `elevators` 将电梯备注对应到相应的电梯。
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, Clone)]
 pub struct Map {
     pub nodes: Vec<Node>,
     pub edges: Vec<HashSet<usize>>,
@@ -53,9 +53,10 @@ impl Map {
         }
     }
 
-    /// 加点，同时加入电梯。
-    pub fn add_node(&mut self, name: String, pos: Position, floor: i32, elevator: String) {
-        let index = self.new_node_id();
+
+    /// 标记一个点上的信息，包括名称和电梯名称（留空为非电梯）
+    pub fn mark_node(&mut self, index: usize, name: String, elevator: String) -> Result<(), String>{
+        self.check_node_valid(index)?;
         if !elevator.is_empty() {
             self.elevators
                 .entry(elevator.clone())
@@ -64,13 +65,22 @@ impl Map {
                 })
                 .or_insert(Elevator(HashSet::from([index])));
         }
+        self.nodes[index].name = name;
+        self.nodes[index].elevator = elevator;
+        Ok(())
+    }
+
+    /// 加点，同时加入电梯。
+    pub fn add_node(&mut self, pos: Position, floor: usize) -> usize {
+        let index = self.new_node_id();
         self.nodes[index] = Node {
-            name,
+            name: String::default(),
             pos,
             floor,
-            elevator,
+            elevator: String::default(),
             index,
         };
+        index
     }
 
     pub fn check_node_valid(&self, index: usize) -> Result<(), String> {

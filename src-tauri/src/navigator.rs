@@ -48,10 +48,10 @@ impl Map {
     /// 倒推出路径。
     fn get_path(&self, dis: Vec<usize>, last: Vec<usize>, mut u: usize) -> Guidance {
         let mut res = Guidance::default();
-        res.push(&self.nodes[u]);
+        res.push(self.nodes[u].clone());
         while last[u] != INF {
             u = last[u];
-            res.push(&self.nodes[u]);
+            res.push(self.nodes[u].clone());
         }
         res
     }
@@ -67,10 +67,6 @@ impl Map {
     }
 }
 
-struct Navigator<'a> {
-    map: Map,
-    guide: Guidance<'a>,
-}
 
 #[cfg(test)]
 mod tests {
@@ -80,7 +76,7 @@ mod tests {
     fn test_find_path() {
         let mut map = Map::default();
         for _ in 0 .. 10 {
-            map.add_node(String::new(), Position{ x: 0.0, y: 0.0 }, 0, String::new());
+            map.add_node( Position{ x: 0.0, y: 0.0 }, 0);
         }
         map.add_edge(1, 2).unwrap();
         map.add_edge(1, 3).unwrap();

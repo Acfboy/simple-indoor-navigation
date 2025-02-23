@@ -13,7 +13,6 @@
             新导航
         </n-button>
         <n-dropdown trigger="hover" :options="options" @select="handleSelect">
-
             <n-button text>
                 <n-icon>
                     <Add />
@@ -45,8 +44,7 @@
             </n-space>
             <template #action>
                 请移动到最近的参照物（如教室）附近，选择你的位置和目的地，开始导航。
-                参考前进方向由磁力计确定，可能有较大误差，仅供参考。
-                请注意观察路口参照物，并跟随文字提示。
+                地图方向由磁力计确定，可能有较大误差，仅供参考。
             </template>
         </n-card>
     </n-modal>
@@ -57,7 +55,7 @@ import { NFlex, NButton, NIcon, NDropdown, NModal, NCard, NSpace, NSelect } from
 import { ArrowBack, ArrowForward, NavigateOutline, Add } from '@vicons/ionicons5';
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
-import { BaseDirectory, readDir, readTextFile } from '@tauri-apps/plugin-fs';
+import { BaseDirectory, exists, mkdir, readDir, readTextFile } from '@tauri-apps/plugin-fs';
 
 type landmarkItem = {
     label: string,
@@ -68,33 +66,7 @@ type selectItem = {
     label: string,
     value: string
 }
-type Corridor = Mark[];
 
-type Mark = {
-    name: string,
-    detail: string,
-    elevatorFloor: number
-}
-
-type Branch = {
-    direction: number,
-    mark: Mark
-}
-
-type Intersection = Branch[];
-
-type OriginalMap = {
-    nodes: Intersection[],
-    edges: Corridor[]
-}
-
-function markName(x: Mark) {
-    let s: string = '';
-    s = x.name;
-    if (x.detail.length) s += '(' + x.detail + ')';
-    if (x.elevatorFloor) s += x.elevatorFloor + '层';
-    return s;
-}
 
 export default {
     components: {
@@ -123,34 +95,31 @@ export default {
             dest: "",
             showInfo: false,
             selectedMap: "",
-            mapObj: { edges: [], nodes: [] } as OriginalMap
+            mapObj: { imgs: [], map: {} },
         };
     },
     methods: {
         async updateLandMarks(value: string) {
+            const dirExists = await exists('maps', {
+                baseDir: BaseDirectory.AppData
+            });
+            if (!dirExists) {
+                await mkdir('maps', {
+                    baseDir: BaseDirectory.AppData,
+                });
+            }
             const content = await readTextFile("maps/" + value + '.json', {
                 baseDir: BaseDirectory.AppData
             });
-            const mapObj: OriginalMap = JSON.parse(content);
+            const mapObj = JSON.parse(content);
             this.mapObj = mapObj;
-            let nameList: Mark[] = [];
-            for (const c of mapObj.nodes)
-                for (const d of c)
-                    nameList.push(d.mark);
-            for (const c of mapObj.edges)
-                for (const d of c)
-                    nameList.push(d);
-            let set: Set<string> = new Set();
-            for (const c of nameList) {
-                set.add(JSON.stringify(c));
-            }
-            nameList = [];
-            for (const s of set) 
-                nameList.push(JSON.parse(s));
+            let nameList = [];
+            for (const c of mapObj.map.nodes)
+                nameList.push(c);
             this.landmarks = nameList.map((s) => {
                 return {
-                    label: markName(s),
-                    value: JSON.stringify(s)
+                    label: s.name,
+                    value: s.index
                 }
             });
         },
@@ -159,7 +128,7 @@ export default {
                 await invoke('prev_step');
             }
             catch {
-                
+
             }
         },
         async nextStep() {
@@ -171,7 +140,7 @@ export default {
             }
         },
         async setBeginListener() {
-            await listen<number>('route-change', () => {
+            await listen<number>('begin', () => {
                 this.running = true;
             });
         },
@@ -202,11 +171,12 @@ export default {
         },
         async createNewNav() {
             invoke("create_new_nav", {
-                cur: JSON.parse(this.cur),
-                dest: JSON.parse(this.dest),
-                map: this.mapObj
+                from: this.cur,
+                to: this.dest,
+                map: this.mapObj.map,
+                imgs: this.mapObj.imgs
             })
-            .then(() => this.newNavModal = false, (err) => alert(err));
+                .then(() => this.newNavModal = false, (err) => alert(err));
         }
     },
     mounted() {

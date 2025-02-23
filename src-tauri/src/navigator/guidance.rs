@@ -1,18 +1,20 @@
+use serde::Serialize;
+
 /// 这个模块声明用于存储路线数据的类型，包括找到每一步路径的功能。
 
 use super::map::Node;
 
 /// 生成每一步的路径，并提供返回当前步、下一步和上一步的接口。
 #[derive(Default)]
-pub struct Guidance<'a> {
-    path: Route<'a>,
-    steps: Vec<Route<'a>>,
+pub struct Guidance {
+    path: Route,
+    steps: Vec<Route>,
     cur_step: usize,
 }
 
 /// `Route` 即一路上的所有点。
-#[derive(Default, Clone)]
-pub struct Route<'a>(Vec<&'a Node>);
+#[derive(Default, Clone, Serialize)]
+pub struct Route(pub Vec<Node>);
 
 /// 表示显示区域的像素大小。在 `low_bound` 和 `up_bound` 等中也用来表示相对于起点需求的显示区域的大小。
 #[derive(Clone)]
@@ -36,8 +38,8 @@ impl Node {
     }
 }
 
-impl<'a> Guidance<'a> {
-    pub fn push(&mut self, node: &'a Node) {
+impl Guidance {
+    pub fn push(&mut self, node: Node) {
         self.path.0.push(node);
     }
 
@@ -51,7 +53,7 @@ impl<'a> Guidance<'a> {
         let mut up_bound = ScreenSize(0., 0.);
         let mut lst = beg;
         let mut elevated = false;
-        self.steps = vec![Route(vec![beg])];
+        self.steps = vec![Route(vec![beg.clone()])];
         while let Some(&nxt) = it.peek() {
             let (n_low_bound, n_up_bound) = nxt.check_bound(beg, &low_bound, &up_bound);
             if n_up_bound.0 - n_low_bound.0 > size.0 * 0.9
@@ -68,11 +70,11 @@ impl<'a> Guidance<'a> {
                     elevated = false;
                 }
                 beg = lst;
-                self.steps.push(Route(vec![beg]));
+                self.steps.push(Route(vec![beg.clone()]));
             }
             let last_index = self.steps.len() - 1;
             lst = it.next().unwrap();
-            self.steps[last_index].0.push(lst);
+            self.steps[last_index].0.push(lst.clone());
             (low_bound, up_bound) = (n_low_bound, n_up_bound);
         }
         Ok(())
@@ -96,7 +98,7 @@ impl<'a> Guidance<'a> {
         }
     }
 
-    pub fn query(&self) -> Result<Route<'a>, String> {
+    pub fn query(&self) -> Result<Route, String> {
         if self.steps.len() == 0 {
             Err("steps haven't generated".to_string())
         } else {
@@ -151,7 +153,7 @@ mod tests {
             },
         ];
         for node in &nodes {
-            guide.push(node);
+            guide.push(node.clone());
         }
         guide.step_by_step(ScreenSize(2.0, 2.0)).unwrap();
         let expected_indices = vec![(0, 1), (1, 2), (2, 3), (3, 4)];

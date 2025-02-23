@@ -39,7 +39,7 @@
 
 <script lang="ts">
 import { NCard, NFlex, NTable, NButton, NModal, NInput } from 'naive-ui';
-import { BaseDirectory, create, readDir, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-fs';
+import { BaseDirectory, create, exists, mkdir, readDir, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 
 type MapItem = {
@@ -61,13 +61,21 @@ export default {
     },
     methods: {
         async importMap() {
-            this.newName = "";
-            this.newMapData = await invoke('import_map');
-            if (this.newMapData == "err") {
-                alert('该文件不是合法地图');
+            const dirExists = await exists('maps', {
+                baseDir: BaseDirectory.AppData
+            });
+            if (!dirExists) {
+                await mkdir('maps', {
+                    baseDir: BaseDirectory.AppData,
+                });
             }
-            else this.showSetName = true;
+            try {
+                this.newName = "";
+                this.newMapData = await invoke('import_map');
+                this.showSetName = true;
+            } catch {
 
+            }
         },
         async setName() {
             try {
@@ -85,6 +93,14 @@ export default {
             }
         },
         async exportMap(path: string, name: string) {
+            const dirExists = await exists('maps', {
+                baseDir: BaseDirectory.AppData
+            });
+            if (!dirExists) {
+                await mkdir('maps', {
+                    baseDir: BaseDirectory.AppData,
+                });
+            }
             let mapContent = await readTextFile(path, {
                 baseDir: BaseDirectory.AppData
             });
