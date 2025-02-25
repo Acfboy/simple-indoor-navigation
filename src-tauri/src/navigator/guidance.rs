@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// 这个模块声明用于存储路线数据的类型，包括找到每一步路径的功能。
 
@@ -17,7 +17,7 @@ pub struct Guidance {
 pub struct Route(pub Vec<Node>);
 
 /// 表示显示区域的像素大小。在 `low_bound` 和 `up_bound` 等中也用来表示相对于起点需求的显示区域的大小。
-#[derive(Clone)]
+#[derive(Clone, Deserialize)]
 pub struct ScreenSize(f64, f64);
 
 impl Node {
@@ -46,7 +46,7 @@ impl Guidance {
     /// 根据显示区域的大小划定每一步要走的路线，并存在 `steps` 内。  
     /// 若有步骤只能包含进单一节点，返回错误。  
     /// 电梯（楼梯）节点单独多加一步。
-    pub fn step_by_step(&mut self, size: ScreenSize) -> Result<(), String> {
+    pub fn step_by_step(&mut self, size: ScreenSize, scales: Vec<f64>) -> Result<(), String> {
         let mut it = self.path.0.iter().peekable();
         let mut beg = it.next().ok_or("path not exist")?;
         let mut low_bound = ScreenSize(0., 0.);
@@ -56,8 +56,8 @@ impl Guidance {
         self.steps = vec![Route(vec![beg.clone()])];
         while let Some(&nxt) = it.peek() {
             let (n_low_bound, n_up_bound) = nxt.check_bound(beg, &low_bound, &up_bound);
-            if n_up_bound.0 - n_low_bound.0 > size.0 * 0.9
-                || n_up_bound.1 - n_low_bound.1 > size.1 * 0.9
+            if n_up_bound.0 - n_low_bound.0 > size.0 * 0.9 / scales[nxt.floor - 1]
+                || n_up_bound.1 - n_low_bound.1 > size.1 * 0.9 / scales[nxt.floor - 1]
                 || nxt.floor != lst.floor
                 || elevated
             {
@@ -155,7 +155,7 @@ mod tests {
         for node in &nodes {
             guide.push(node.clone());
         }
-        guide.step_by_step(ScreenSize(2.0, 2.0)).unwrap();
+        guide.step_by_step(ScreenSize(2.0, 2.0), vec![1.0, 1.0]).unwrap();
         let expected_indices = vec![(0, 1), (1, 2), (2, 3), (3, 4)];
         for (expected_0, expected_1) in expected_indices {
             let current = guide.query().unwrap();

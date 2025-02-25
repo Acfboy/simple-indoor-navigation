@@ -5,7 +5,6 @@
 
 <script lang="ts">
 import { invoke } from '@tauri-apps/api/core'
-import { emit } from '@tauri-apps/api/event'
 import { defineComponent, ref, onMounted } from 'vue'
 
 interface Block {
@@ -24,11 +23,11 @@ export default defineComponent({
     props: {
         mapHeight: {
             type: Number,
-            default: 0
+            default: 1
         },
         mapWidth: {
             type: Number,
-            defalut: 0
+            defalut: 1
         },
         imageUrl: {
             type: String,
@@ -111,6 +110,9 @@ export default defineComponent({
 
             ctx.value!.restore()
         }
+
+
+        const emit = defineEmits<{ (e: string, payload: number): void; }>();
 
         // 处理触摸开始（新增连线逻辑）
         const handleTouchStart = async (e: TouchEvent) => {
@@ -267,6 +269,7 @@ export default defineComponent({
                     (1 + (distance - touchState.value.pinchDistance) * scaleFactor / touchState.value.pinchDistance)
 
                 scale.value = Math.min(Math.max(newScale, 0.5), 4)
+                emit('scale', scale.value * image.width / props.mapWidth!);
 
                 // 计算基于中点的偏移补偿
                 const canvasPos = getCanvasPosition(center.x, center.y)

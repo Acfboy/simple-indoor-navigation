@@ -3,7 +3,7 @@
     <n-layout-header :style="`height: ${screenHeight * 0.5}px;`" bordered>
       <div v-for="(item, index) in images">
         <Editmap v-show="index + 1 == floor" :image-url="item" :mapHeight="screenHeight * 0.5" :mapWidth="screenWidth"
-          :type="editType" :cur-floor="index" />
+          :type="editType" :cur-floor="index" @scale="updateScale(index, $event)"/>
       </div>
     </n-layout-header>
     <n-layout-content :style="`height: ${screenHeight * 0.4}px`">
@@ -121,6 +121,12 @@ export default defineComponent({
       emitEvent('switch', 'main')
     };
 
+    const scales = ref<number[]>([]);
+
+    const updateScale = (index: number, payload: number) => {
+      scales.value[index] = payload;
+    };
+
     const execSave = async (mapName: string, data: string) => {
       const dirExists = await exists('maps', {
         baseDir: BaseDirectory.AppData
@@ -146,7 +152,8 @@ export default defineComponent({
       if (mapName.value.length) {
         try {
           let data: string = await invoke("get_store_data", {
-            images: images.value,
+            imgs: images.value,
+            scales: scales.value
           });
           execSave(mapName.value, data);
           alert("保存成功")
@@ -175,6 +182,7 @@ export default defineComponent({
         reader.onload = () => {
           if (typeof reader.result === 'string') {
             images.value.push(reader.result);
+            scales.value.push(1);
           }
           else throw new Error("图片没读出");
         }
@@ -207,6 +215,7 @@ export default defineComponent({
       saveMap,
       handleBack,
       toSaveMap,
+      updateScale
     };
   },
 });

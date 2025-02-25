@@ -1,6 +1,6 @@
 use std::sync::MutexGuard;
 
-use navigator::guidance::Route;
+use navigator::guidance::{Route, ScreenSize};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_android_fs::{AndroidFs, AndroidFsExt};
@@ -17,6 +17,7 @@ struct State {
     map: std::sync::Mutex<Map>,
     guidance: std::sync::Mutex<Guidance>,
     imgs: std::sync::Mutex<Vec<String>>,
+    scales: std::sync::Mutex<Vec<f64>>,
 }
 
 #[tauri::command]
@@ -89,17 +90,20 @@ async fn select_image(app: AppHandle) -> Result<Vec<u8>, String> {
 #[derive(Serialize, Deserialize)]
 struct StoreData {
     imgs: Vec<String>,
+    scales: Vec<f64>,
     map: Map,
 }
 
 #[tauri::command]
 async fn get_store_data(
     imgs: Vec<String>,
+    scales: Vec<f64>,
     state: tauri::State<'_, State>,
 ) -> Result<String, String> {
     let map = state.map.lock().map_err(|e| e.to_string())?;
     let data = StoreData {
         imgs,
+        scales,
         map: map.clone(),
     };
     Ok(serde_json::to_string(&data).unwrap())
@@ -109,11 +113,14 @@ fn update_nav(
     app: &AppHandle,
     route: Route,
     images: MutexGuard<Vec<String>>,
+    scale: MutexGuard<Vec<f64>>,
 ) -> Result<(), String> {
     app.emit("update-route", route.clone())
         .map_err(|e| e.to_string())?;
+    app.emit("update-image", (*images)[route.0[0].floor - 1].clone())
+        .map_err(|e| e.to_string())?;
     if route.0.len() == 2 && route.0[0].floor != route.0[1].floor {
-        app.emit("update-image", (*images)[route.0[1].floor - 1].clone())
+        app.emit("update-scale", (*scale)[route.0[1].floor - 1])
             .map_err(|e| e.to_string())?;
         app.emit(
             "prompt",
@@ -124,7 +131,6 @@ fn update_nav(
             ),
         )
         .map_err(|e| e.to_string())?;
-        
     }
     app.emit(
         "prompt",
@@ -146,19 +152,44 @@ fn create_new_nav(
     to: usize,
     map: Map,
     imgs: Vec<String>,
+    scale: Vec<f64>,
+    screen: ScreenSize,
 ) -> Result<(), String> {
     let mut data = state.map.lock().map_err(|e| e.to_string())?;
     (*data) = map;
     let guide = (*data).navigate(from, to)?;
     let mut images = state.imgs.lock().map_err(|e| e.to_string())?;
     (*images) = imgs;
+    let mut scales = state.scales.lock().map_err(|e| e.to_string())?;
+    (*scales) = scale;
     let mut data = state.guidance.lock().map_err(|e| e.to_string())?;
     (*data) = guide;
+    (*data).step_by_step(screen, (*scales).clone())?;
     let fisrt_route = (*data).query()?;
     app.emit("update-image", fisrt_route.0[0].clone())
         .map_err(|e| e.to_string())?;
-    update_nav(&app, fisrt_route, images)?;
+    update_nav(&app, fisrt_route, images, scales)?;
     app.emit("begin", ()).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+fn next_step(app: AppHandle, state: tauri::State<'_, State>) -> Result<(), String> {
+    let images = state.imgs.lock().map_err(|e| e.to_string())?;
+    let scales = state.scales.lock().map_err(|e| e.to_string())?;
+    let mut data = state.guidance.lock().map_err(|e| e.to_string())?;
+    (*data).next_step()?;
+    update_nav(&app, (*data).query()?, images, scales)?;
+    Ok(())
+}
+
+#[tauri::command]
+fn prev_step(app: AppHandle, state: tauri::State<'_, State>) -> Result<(), String> {
+    let images = state.imgs.lock().map_err(|e| e.to_string())?;
+    let scales = state.scales.lock().map_err(|e| e.to_string())?;
+    let mut data = state.guidance.lock().map_err(|e| e.to_string())?;
+    (*data).prev_step()?;
+    update_nav(&app, (*data).query()?, images, scales)?;
     Ok(())
 }
 
@@ -223,7 +254,9 @@ pub fn run() {
             import_map,
             select_image,
             get_store_data,
-            create_new_nav
+            create_new_nav,
+            prev_step,
+            next_step
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

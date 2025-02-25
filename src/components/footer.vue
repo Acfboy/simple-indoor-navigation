@@ -73,6 +73,7 @@ export default {
         NFlex, NButton, ArrowBack, NIcon, ArrowForward, NavigateOutline, Add, NDropdown,
         NModal, NCard, NSpace, NSelect
     },
+    props: ['displayWdith', 'displayHeight'],
     data() {
         return {
             options: [{
@@ -95,7 +96,7 @@ export default {
             dest: "",
             showInfo: false,
             selectedMap: "",
-            mapObj: { imgs: [], map: {} },
+            mapObj: { imgs: [], map: {}, scales: {} },
         };
     },
     methods: {
@@ -174,7 +175,9 @@ export default {
                 from: this.cur,
                 to: this.dest,
                 map: this.mapObj.map,
-                imgs: this.mapObj.imgs
+                imgs: this.mapObj.imgs,
+                scale: this.mapObj.scales,
+                screen: {x: this.$props.displayWdith, y: this.$props.displayHeight }
             })
                 .then(() => this.newNavModal = false, (err) => alert(err));
         }

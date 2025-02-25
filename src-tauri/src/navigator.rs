@@ -46,7 +46,7 @@ impl Map {
     }
 
     /// 倒推出路径。
-    fn get_path(&self, dis: Vec<usize>, last: Vec<usize>, mut u: usize) -> Guidance {
+    fn get_path(&self, last: Vec<usize>, mut u: usize) -> Guidance {
         let mut res = Guidance::default();
         res.push(self.nodes[u].clone());
         while last[u] != INF {
@@ -63,7 +63,7 @@ impl Map {
         if dis[from] == INF {
             return Err("no path".to_string());
         }
-        Ok(self.get_path(dis, last, from))
+        Ok(self.get_path(last, from))
     }
 }
 

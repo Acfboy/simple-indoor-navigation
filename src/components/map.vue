@@ -7,7 +7,7 @@
 </template>
 
 <script lang="ts">
-import { NEmpty, NSpin } from "naive-ui";   
+import { NEmpty, NSpin } from "naive-ui";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { defineComponent, onMounted, ref } from "vue";
@@ -26,7 +26,6 @@ export default defineComponent({
             type: Number,
             default: 0
         },
-
     },
     setup(props) {
         const imageUrl = ref<string>("");
@@ -36,6 +35,7 @@ export default defineComponent({
         const image = ref<HTMLImageElement | null>(null);
         const canvas = ref<HTMLCanvasElement | null>(null);
         const offset = ref<{ x: number; y: number }>({ x: 0, y: 0 });
+        const scale = ref<number>(1); 
 
         const loadImage = () => {
             image.value = null;
@@ -77,6 +77,12 @@ export default defineComponent({
             return leftTop;
         }
 
+        const setScaleListener = async() => {
+            await listen<number>('update-scale', (event) => {
+                scale.value = event.payload;
+            });
+        };
+
         const setPathListener = async () => {
             await listen<{ x: number, y: number }[]>('update-path', (event) => {
                 const list = event.payload;
@@ -94,6 +100,8 @@ export default defineComponent({
 
         const setImageListener = async () => {
             await listen<string>('update-image', (event) => {
+                if (imageUrl.value == event.payload)
+                    return;
                 imageUrl.value = event.payload;
                 loadImage();
             });
@@ -112,15 +120,14 @@ export default defineComponent({
             ctx.save();
             ctx.translate(centerX, centerY);
             ctx.rotate((angle.value * Math.PI) / 180);
+            ctx.scale(scale.value, scale.value); // 使用 scale 变量进行缩放
             ctx.drawImage(image.value, -image.value.width / 2 - offset.value.x, -image.value.height / 2 - offset.value.y);
             ctx.restore();
 
             points.value.forEach((point) => {
-
                 if (!image.value) return;
                 const pointX = point.x - image.value.width / 2;
                 const pointY = point.y - image.value.height / 2;
-
 
                 const rotatedPointX =
                     centerX +
@@ -130,7 +137,6 @@ export default defineComponent({
                     centerY +
                     pointX * Math.sin((angle.value * Math.PI) / 180) +
                     pointY * Math.cos((angle.value * Math.PI) / 180);
-
 
                 ctx.beginPath();
                 ctx.arc(rotatedPointX, rotatedPointY, 5, 0, Math.PI * 2);
@@ -152,6 +158,7 @@ export default defineComponent({
             setAngleListener();
             setPathListener();
             setImageListener();
+            setScaleListener();
         });
 
         return {
@@ -163,6 +170,7 @@ export default defineComponent({
             canvas,
             addPoint,
             updateCanvas,
+            scale, // 返回 scale 变量
         };
     },
 });
