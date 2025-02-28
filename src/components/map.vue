@@ -145,17 +145,9 @@ export default defineComponent({
             });
         };
 
-        const setScreenSize = async () => {
-            const size = Math.min(props.screenHeight, props.screenWidth);
-            await invoke("set_screen_size", {
-                x: size,
-                y: size,
-            })
-        };
 
         onMounted(() => {
-            setScreenSize();
-            setAngleListener();
+            // setAngleListener();
             setPathListener();
             setImageListener();
             setScaleListener();

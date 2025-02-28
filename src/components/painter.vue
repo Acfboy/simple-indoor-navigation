@@ -3,41 +3,48 @@
     <n-layout-header :style="`height: ${screenHeight * 0.5}px;`" bordered>
       <div v-for="(item, index) in images">
         <Editmap v-show="index + 1 == floor" :image-url="item" :mapHeight="screenHeight * 0.5" :mapWidth="screenWidth"
-          :type="editType" :cur-floor="index" @scale="updateScale(index, $event)"/>
+          :type="editType" :cur-floor="index + 1" @scale="updateScale(index, $event)" @select-node="handleSelectNode"/>
       </div>
     </n-layout-header>
     <n-layout-content :style="`height: ${screenHeight * 0.4}px`">
-      <n-tabs :value="editType" @on-update:value="updateNodes">
-        <n-tab name="add" tab="添加"></n-tab>
-        <n-tab name="del" tab="删除"></n-tab>
-        <n-tab name="mark" tab="标注"></n-tab>
-      </n-tabs>
-      <n-pagination v-model:page="floor" :page-count="images.length" />
-      <n-button secondary @click="addFloor">
-        添加一层
-      </n-button>
-      <n-card v-if="editType == 'mark'" title="标注选中点">
-        <div v-for="item in nodeList">
-          <div v-if="item.index == selectedIndex">
-            节点名称 <n-input v-model:value="item.name" type="text" placeholder="节点名称" @on-blur="markNode" />
-            节点名称 <n-input v-model:value="item.elevator" type="text" placeholder="电梯/楼梯名 非电梯/楼梯则留空"
-              @on-blur="markNode" />
-          </div>
+      <n-flex vertical >
+        <n-tabs v-model:value="editType" @update:value="updateNodes">
+          <n-tab name="add" tab="添加"></n-tab>
+          <n-tab name="del" tab="删除"></n-tab>
+          <n-tab name="mark" tab="标注"></n-tab>
+        </n-tabs>
+
+        <div v-show="images.length != 0">
+          <n-pagination v-model:page="floor" :page-count="images.length" />
         </div>
-      </n-card>
-      <n-flex justify="space-between">
-        <n-button @click="handleBack" text>
-          <n-icon>
-            <ArrowBack />
-          </n-icon>
-          返回
+
+        <n-button secondary @click="addFloor">
+          添加一层
         </n-button>
-        <n-button @click="toSaveMap" text size="small">
-          <n-icon>
-            <SaveOutline />
-          </n-icon>
-          保存地图
-        </n-button>
+        <n-card v-if="editType == 'mark'" title="标注选中点">
+          <div v-for="item in nodeList">
+            <!-- {{ item }} -->
+            <div v-if="item.index == selectedIndex">
+              节点名称 <n-input v-model:value="item.name" type="text" placeholder="节点名称" @on-blur="markNode" />
+              节点名称 <n-input v-model:value="item.elevator" type="text" placeholder="电梯/楼梯名 非电梯/楼梯则留空"
+                @on-blur="markNode" />
+            </div>
+          </div>
+        </n-card>
+        <n-flex justify="space-between">
+          <n-button @click="handleBack" text>
+            <n-icon>
+              <ArrowBack />
+            </n-icon>
+            返回
+          </n-button>
+          <n-button @click="toSaveMap" text size="small">
+            <n-icon>
+              <SaveOutline />
+            </n-icon>
+            保存地图
+          </n-button>
+        </n-flex>
       </n-flex>
     </n-layout-content>
   </n-layout>
@@ -58,25 +65,28 @@
 </template>
 
 <script lang="ts">
-import { NLayout, NLayoutContent, NLayoutHeader, NTabs, NTab, NPagination, NButton, NInput, NFlex, NCard, NModal } from "naive-ui";
+import { NLayout, NLayoutContent, NLayoutHeader, NTabs, NTab, NPagination, NButton, NInput, NFlex, NCard, NModal, NIcon } from "naive-ui";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
 import { defineComponent, onMounted, ref } from "vue";
 import Editmap from "./painter/editmap.vue";
 import { BaseDirectory, create, exists, mkdir, writeTextFile } from "@tauri-apps/plugin-fs";
+import { ArrowBack, SaveOutline } from "@vicons/ionicons5";
+
+
 
 export default defineComponent({
   name: "Map",
   components: {
     NLayout, Editmap, NLayoutHeader, NModal, NLayoutContent,
-    NTabs, NTab, NPagination, NButton, NInput, NFlex, NCard
+    NTabs, NTab, NPagination, NButton, NInput, NFlex, NCard, NIcon, ArrowBack, SaveOutline
   },
-  setup() {
+  emits: ['switch'],
+  setup(_, context) {
     const screenHeight = ref(window.innerHeight);
     const screenWidth = ref(window.innerWidth);
     const editType = ref("add");
     const floorNumber = ref(0);
-    const floor = ref(0);
+    const floor = ref(1);
     const selectedIndex = ref(-1);
 
     type Position = {
@@ -111,14 +121,9 @@ export default defineComponent({
       }
     }
 
-    const emit = defineEmits<{ (e: string, payload: string): void; }>();
-
-    function emitEvent(message: string, payload: string) {
-      emit(message, payload);
-    }
 
     const handleBack = () => {
-      emitEvent('switch', 'main')
+      context.emit('switch', 'main')
     };
 
     const scales = ref<number[]>([]);
@@ -171,16 +176,21 @@ export default defineComponent({
     const showSaveMap = ref(false);
 
     const toSaveMap = () => {
+      markNode();
       showSaveMap.value = true;
     };
 
     const addFloor = async () => {
       try {
-        const binary = new Blob(await invoke('selectImage'));
+        const payload: { 0: number[], 1: string } = await invoke('select_image');
+        // alert(typeof payload[0][0])
+        const binaryData = new Uint8Array(payload[0]);
+        const binary = new Blob([binaryData], { type: payload[1] });
         let reader = new FileReader();
         reader.readAsDataURL(binary);
         reader.onload = () => {
           if (typeof reader.result === 'string') {
+            // alert(reader.result);
             images.value.push(reader.result);
             scales.value.push(1);
           }
@@ -191,11 +201,13 @@ export default defineComponent({
       }
     }
 
-    onMounted(async () => {
-      await listen<number>('select-node', (event) => {
+    const handleSelectNode = (index: number) => {
         markNode();
-        selectedIndex.value = event.payload;
-      });
+        selectedIndex.value = index;
+      };
+
+    onMounted(async () => {
+      await invoke("clear_data");
     });
 
     return {
@@ -215,7 +227,8 @@ export default defineComponent({
       saveMap,
       handleBack,
       toSaveMap,
-      updateScale
+      updateScale,
+      handleSelectNode
     };
   },
 });

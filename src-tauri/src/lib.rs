@@ -73,7 +73,7 @@ fn cur_node_list(state: tauri::State<'_, State>) -> Result<Vec<Node>, String> {
 use tauri_plugin_android_fs::VisualMediaTarget;
 
 #[tauri::command]
-async fn select_image(app: AppHandle) -> Result<Vec<u8>, String> {
+async fn select_image(app: AppHandle) -> Result<(Vec<u8>, String), String> {
     let api = app.android_fs();
     let select = api
         .show_open_visual_media_dialog(VisualMediaTarget::ImageOnly, false)
@@ -81,7 +81,7 @@ async fn select_image(app: AppHandle) -> Result<Vec<u8>, String> {
     if !select.is_empty() {
         let file_path = &select[0];
         let content = api.read(file_path).map_err(|e| e.to_string())?;
-        Ok(content)
+        Ok((content, api.get_mime_type(file_path).unwrap().unwrap()))
     } else {
         Err(String::new())
     }
@@ -144,20 +144,23 @@ fn update_nav(
     Ok(())
 }
 
+
+/// 从 `from` 走到最近的名称为 `to` 的点。
 #[tauri::command]
 fn create_new_nav(
     app: AppHandle,
     state: tauri::State<'_, State>,
     from: usize,
-    to: usize,
+    to: String,
     map: Map,
     imgs: Vec<String>,
     scale: Vec<f64>,
     screen: ScreenSize,
+    disable_elevator: bool
 ) -> Result<(), String> {
     let mut data = state.map.lock().map_err(|e| e.to_string())?;
     (*data) = map;
-    let guide = (*data).navigate(from, to)?;
+    let guide = (*data).navigate(from, to, disable_elevator)?;
     let mut images = state.imgs.lock().map_err(|e| e.to_string())?;
     (*images) = imgs;
     let mut scales = state.scales.lock().map_err(|e| e.to_string())?;

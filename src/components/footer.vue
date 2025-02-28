@@ -12,7 +12,7 @@
             </n-icon>
             新导航
         </n-button>
-        <n-dropdown trigger="hover" :options="options" @select="handleSelect">
+        <n-dropdown trigger="click" :options="options" @select="handleSelect">
             <n-button text>
                 <n-icon>
                     <Add />
@@ -34,10 +34,12 @@
                 <n-select @update:value="updateLandMarks" v-model:value="selectedMap" filterable placeholder="地图"
                     :options="maps" />
                 你的位置
-                <n-select v-model:value="cur" filterable placeholder="你的位置" :options="landmarks" />
+                <n-select v-model:value="cur" filterable placeholder="你的位置" :options="fromLandmarks" />
                 目的地
-                <n-select v-model:value="dest" filterable placeholder="目的地" :options="landmarks" />
-
+                <n-select v-model:value="dest" filterable placeholder="目的地" :options="toLandmarks" />
+                <n-checkbox v-model:checked="disableElevator">
+                    不坐电梯
+                </n-checkbox>
                 <n-button type="success" @click="createNewNav">
                     出发
                 </n-button>
@@ -51,13 +53,13 @@
 </template>
 
 <script lang="ts">
-import { NFlex, NButton, NIcon, NDropdown, NModal, NCard, NSpace, NSelect } from 'naive-ui';
+import { NFlex, NButton, NIcon, NDropdown, NModal, NCard, NSpace, NSelect, NCheckbox } from 'naive-ui';
 import { ArrowBack, ArrowForward, NavigateOutline, Add } from '@vicons/ionicons5';
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
 import { BaseDirectory, exists, mkdir, readDir, readTextFile } from '@tauri-apps/plugin-fs';
 
-type landmarkItem = {
+type fromLandmarkItem = {
     label: string,
     value: string
 }
@@ -67,11 +69,15 @@ type selectItem = {
     value: string
 }
 
+type toLandmarkItem = {
+    label: string,
+    value: string
+}
 
 export default {
     components: {
         NFlex, NButton, ArrowBack, NIcon, ArrowForward, NavigateOutline, Add, NDropdown,
-        NModal, NCard, NSpace, NSelect
+        NModal, NCard, NSpace, NSelect, NCheckbox
     },
     props: ['displayWdith', 'displayHeight'],
     data() {
@@ -91,12 +97,14 @@ export default {
             curMap: "",
             running: false,
             newNavModal: false,
-            landmarks: [] as landmarkItem[],
+            fromLandmarks: [] as fromLandmarkItem[],
+            toLandmarks: [] as toLandmarkItem[],
             cur: "",
             dest: "",
             showInfo: false,
             selectedMap: "",
             mapObj: { imgs: [], map: {}, scales: {} },
+            disableElevator: true,
         };
     },
     methods: {
@@ -117,12 +125,34 @@ export default {
             let nameList = [];
             for (const c of mapObj.map.nodes)
                 nameList.push(c);
-            this.landmarks = nameList.map((s) => {
-                return {
-                    label: s.name,
-                    value: s.index
+            let mp1 = new Map();
+            for (const c of nameList) {
+                if (c.name.length == 0) continue;
+                if (!mp1.get(c.name)) {
+                    mp1.set(c.name, 1);
+                } else {
+                    mp1.set(c.name, mp1.get(c.name) + 1);
                 }
-            });
+            }
+            this.fromLandmarks = [];
+            for (const c of nameList) {
+                if (mp1.get(c.name) == 1)
+                    this.fromLandmarks.push({ label: c.name, value: String(c.index) })
+                // alert(mp1.get(c.name))
+            }
+            let mp2 = new Map();
+            this.toLandmarks = [];
+            for (const c of nameList) {
+                if (c.name.length == 0) continue;
+                if (!mp2.get(c.name)) {
+                    let name = c.name;
+                    if (mp1.get(c.name) > 1) {
+                        name = '最近的 ' + name;
+                    }
+                    this.toLandmarks.push({ label: name, value: c.name });
+                }
+                mp2.set(c.name, 1);
+            }
         },
         async prevStep() {
             try {
@@ -146,6 +176,8 @@ export default {
             });
         },
         async newNav() {
+            this.cur = "";
+            this.dest = "";
             this.maps = [];
             let mapList = [];
             try {
@@ -171,13 +203,18 @@ export default {
             this.$emit('switch', key)
         },
         async createNewNav() {
+            if (this.cur.length == 0 || this.dest.length == 0) {
+                alert('请选择地图、目的地和终点再开始导航。');
+                return;
+            }
             invoke("create_new_nav", {
-                from: this.cur,
+                from: Number(this.cur),
                 to: this.dest,
                 map: this.mapObj.map,
                 imgs: this.mapObj.imgs,
                 scale: this.mapObj.scales,
-                screen: {x: this.$props.displayWdith, y: this.$props.displayHeight }
+                screen: [this.$props.displayWdith, this.$props.displayHeight],
+                disableElevator: this.disableElevator,
             })
                 .then(() => this.newNavModal = false, (err) => alert(err));
         }

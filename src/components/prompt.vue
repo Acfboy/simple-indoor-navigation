@@ -25,7 +25,7 @@ export default {
     },
     methods: {
         async setPromptListener() {
-            listen<string>('prompt', (event) => {
+            await listen<string>('prompt', (event) => {
                 this.prompt = event.payload;
             });
         },

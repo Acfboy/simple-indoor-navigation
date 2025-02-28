@@ -72,7 +72,9 @@ export default {
             try {
                 this.newName = "";
                 this.newMapData = await invoke('import_map');
-                this.showSetName = true;
+                if (this.newMapData.length != 0) {
+                    this.showSetName = true;
+                }
             } catch {
 
             }

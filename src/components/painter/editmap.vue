@@ -42,13 +42,15 @@ export default defineComponent({
             default: 0
         }
     },
-    setup(props) {
+    setup(props, context) {
         const canvas = ref<HTMLCanvasElement | null>(null)
         const ctx = ref<CanvasRenderingContext2D | null>(null)
         const image = new Image()
         const blocks = ref<Block[]>([])
         const lines = ref<Line[]>([])
         const selectedBlock = ref<Block | null>(null)
+        const justClicked = ref<Block | null>(null)
+        const lastType = ref<string>("null");
 
         // 视图参数
         const scale = ref(1)
@@ -90,7 +92,11 @@ export default defineComponent({
             ctx.value.drawImage(image, 0, 0)
 
             blocks.value.forEach(block => {
-                ctx.value!.fillStyle = '#ff0000'
+                if (props.type == 'mark' && justClicked.value && block.index == justClicked.value.index) {
+                    ctx.value!.fillStyle = '#0000ff'
+                } else {
+                    ctx.value!.fillStyle = '#ff0000'
+                }
                 ctx.value!.fillRect(
                     block.x - block.size / 2,
                     block.y - block.size / 2,
@@ -112,10 +118,13 @@ export default defineComponent({
         }
 
 
-        const emit = defineEmits<{ (e: string, payload: number): void; }>();
 
         // 处理触摸开始（新增连线逻辑）
         const handleTouchStart = async (e: TouchEvent) => {
+            if (lastType.value != props.type) {
+                selectedBlock.value = null;
+                lastType.value = props.type;
+            }
             if (!canvas.value) return
             e.preventDefault()
 
@@ -128,44 +137,6 @@ export default defineComponent({
                 Math.abs(pos.x - b.x) < b.size &&
                 Math.abs(pos.y - b.y) < b.size
             )
-
-            if (clickedBlock) {
-
-                if (props.type == 'mark')
-                    await emit('select-node', clickedBlock.index);
-
-                if (selectedBlock.value) {
-                    console.log(2)
-
-                    if (props.type == 'add') {
-                        await invoke('add_edge', {
-                            from: selectedBlock.value.index,
-                            to: clickedBlock.index
-                        });
-                        lines.value.push({
-                            start: selectedBlock.value,
-                            end: clickedBlock
-                        })
-                    } else if (props.type == 'del') {
-                        const u = selectedBlock.value.index;
-                        const v = clickedBlock.index;
-                        await invoke('add_edge', {
-                            from: u,
-                            to: v
-                        });
-                        lines.value = lines.value.filter(x =>
-                            !(x.start.index == u && x.end.index == v ||
-                                x.start.index == v && x.end.index == u)
-                        );
-                    }
-
-                    selectedBlock.value = null
-                } else {
-                    selectedBlock.value = clickedBlock
-                }
-                draw()
-                return
-            }
 
             // 双击添加方块
             if (e.touches.length === 1) {
@@ -185,10 +156,6 @@ export default defineComponent({
                             index: newIndex
                         })
                     } else if (props.type == 'del') {
-                        const clickedBlock = blocks.value.find(b =>
-                            Math.abs(pos.x - b.x) < b.size &&
-                            Math.abs(pos.y - b.y) < b.size
-                        );
                         if (clickedBlock) {
                             await invoke('remove_node', {
                                 index: clickedBlock.index
@@ -196,6 +163,9 @@ export default defineComponent({
                             blocks.value = blocks.value.filter(x =>
                                 x.index != clickedBlock.index
                             )
+                            lines.value = lines.value.filter(x =>
+                                !(x.start.index == clickedBlock.index || x.end.index == clickedBlock.index)
+                            );
                         }
                     }
 
@@ -204,6 +174,45 @@ export default defineComponent({
                     return
                 }
                 lastTouch.value = { time: now, x: pos.x, y: pos.y }
+            }
+
+            if (clickedBlock) {
+
+                if (props.type == 'mark') {
+                    context.emit('select-node', clickedBlock.index);
+                    justClicked.value = clickedBlock;
+                }
+
+                if (selectedBlock.value) {
+
+                    if (props.type == 'add') {
+                        await invoke('add_edge', {
+                            from: selectedBlock.value.index,
+                            to: clickedBlock.index
+                        });
+                        lines.value.push({
+                            start: selectedBlock.value,
+                            end: clickedBlock
+                        })
+                    } else if (props.type == 'del') {
+                        const u = selectedBlock.value.index;
+                        const v = clickedBlock.index;
+                        await invoke('remove_edge', {
+                            from: u,
+                            to: v
+                        });
+                        lines.value = lines.value.filter(x =>
+                            !(x.start.index == u && x.end.index == v ||
+                                x.start.index == v && x.end.index == u)
+                        );
+                    }
+
+                    selectedBlock.value = null
+                } else {
+                    selectedBlock.value = clickedBlock
+                }
+                draw()
+                return
             }
 
             // 处理手势
@@ -268,8 +277,8 @@ export default defineComponent({
                 const newScale = touchState.value.initialScale *
                     (1 + (distance - touchState.value.pinchDistance) * scaleFactor / touchState.value.pinchDistance)
 
-                scale.value = Math.min(Math.max(newScale, 0.5), 4)
-                emit('scale', scale.value * image.width / props.mapWidth!);
+                scale.value = newScale
+                context.emit('scale', scale.value * image.width / props.mapWidth!);
 
                 // 计算基于中点的偏移补偿
                 const canvasPos = getCanvasPosition(center.x, center.y)
@@ -288,7 +297,9 @@ export default defineComponent({
             canvas.value.width = window.innerWidth
             canvas.value.height = window.innerHeight
             image.src = props.imageUrl
-            image.onload = draw
+            image.onload = () => {
+                draw();
+            }
         })
 
         return {
@@ -298,7 +309,8 @@ export default defineComponent({
             handleTouchEnd: () => {
                 touchState.value.isDragging = false
                 // selectedBlock.value = null // 重置选中状态
-            }
+            },
+            lastType
         }
     }
 })

@@ -17,7 +17,7 @@ const promptHeight = screenHeight * 0.2;
 const mainHeight = screenHeight * 0.7;
 
 
-const page = ref("paint");
+const page = ref("main");
 
 function handleSwitch(nextPage: string) {
   page.value = nextPage
@@ -47,7 +47,7 @@ function handleBack() {
       </n-layout-content>
 
       <n-layout-footer bordered>
-        <Footer @switch="handleSwitch" />
+        <Footer @switch="handleSwitch" :display-height="screenHeight" :display-wdith="screenWidth"/>
       </n-layout-footer>
 
     </n-layout>
