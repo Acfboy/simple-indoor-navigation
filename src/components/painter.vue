@@ -15,7 +15,7 @@
         </n-tabs>
 
         <div v-show="images.length != 0">
-          <n-pagination v-model:page="floor" :page-count="images.length" />
+          <n-pagination v-model:page="floor" :page-count="images.length" @update:page="markNode"/>
         </div>
 
         <n-button secondary @click="addFloor">
@@ -165,7 +165,6 @@ export default defineComponent({
           handleBack();
         }
         catch (err) {
-          alert(err);
         }
       }
       else {
@@ -197,7 +196,6 @@ export default defineComponent({
           else throw new Error("图片没读出");
         }
       } catch (e) {
-        alert(e);
       }
     }
 

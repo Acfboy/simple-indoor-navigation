@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Default, Clone, Debug)]
 pub struct Position {
     pub x: f64,
     pub y: f64,
@@ -15,7 +15,7 @@ pub struct Position {
 /// - 在第几层，用于处理电梯和楼梯。
 /// - 电梯备注，用于区分是哪个电梯。
 /// - 节点编号。
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Serialize, Deserialize, Default, Clone, Debug)]
 pub struct Node {
     pub name: String,
     pub pos: Position,

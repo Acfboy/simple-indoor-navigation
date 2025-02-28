@@ -180,24 +180,19 @@ export default {
             this.dest = "";
             this.maps = [];
             let mapList = [];
-            try {
-                const entries = await readDir("maps", {
-                    baseDir: BaseDirectory.AppData
-                });
-                for (const entry of entries) {
-                    mapList.push(entry.name.slice(0, -5))
+            const entries = await readDir("maps", {
+                baseDir: BaseDirectory.AppData
+            });
+            for (const entry of entries) {
+                mapList.push(entry.name.slice(0, -5))
+            }
+            this.maps = mapList.map((s) => {
+                return {
+                    label: s,
+                    value: s
                 }
-                this.maps = mapList.map((s) => {
-                    return {
-                        label: s,
-                        value: s
-                    }
-                });
-                this.newNavModal = true;
-            }
-            catch (err) {
-                alert(err);
-            }
+            });
+            this.newNavModal = true;
         },
         handleSelect(key: string) {
             this.$emit('switch', key)
@@ -206,6 +201,9 @@ export default {
             if (this.cur.length == 0 || this.dest.length == 0) {
                 alert('请选择地图、目的地和终点再开始导航。');
                 return;
+            }
+            if (this.mapObj.map!.nodes[Number(this.cur)].name == this.dest) {
+                alert('起点与终点不能相同。')
             }
             invoke("create_new_nav", {
                 from: Number(this.cur),

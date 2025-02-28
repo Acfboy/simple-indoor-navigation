@@ -33,7 +33,7 @@ function handleBack() {
 <template>
   <main class="container">
 
-    <n-layout v-if="page == 'main'">
+    <n-layout v-show="page == 'main'">
       <!-- <n-layout-content :content-style="`height: ${timelineHeight}px; overflow: auto; padding:24px;`">
         <Timeline />
       </n-layout-content> -->

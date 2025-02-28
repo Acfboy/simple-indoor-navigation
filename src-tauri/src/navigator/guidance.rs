@@ -8,12 +8,12 @@ use super::map::Node;
 #[derive(Default)]
 pub struct Guidance {
     path: Route,
-    steps: Vec<Route>,
+    pub steps: Vec<Route>,
     cur_step: usize,
 }
 
 /// `Route` 即一路上的所有点。
-#[derive(Default, Clone, Serialize)]
+#[derive(Default, Clone, Serialize, Debug)]
 pub struct Route(pub Vec<Node>);
 
 /// 表示显示区域的像素大小。在 `low_bound` 和 `up_bound` 等中也用来表示相对于起点需求的显示区域的大小。
@@ -81,7 +81,7 @@ impl Guidance {
     }
 
     pub fn next_step(&mut self) -> Result<(), String> {
-        if self.cur_step >= self.steps.len() {
+        if self.cur_step + 1 >= self.steps.len() {
             Err("no next step".to_string())
         } else {
             self.cur_step += 1;

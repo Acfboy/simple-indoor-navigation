@@ -115,12 +115,8 @@ fn update_nav(
     images: MutexGuard<Vec<String>>,
     scale: MutexGuard<Vec<f64>>,
 ) -> Result<(), String> {
-    app.emit("update-route", route.clone())
-        .map_err(|e| e.to_string())?;
-    app.emit("update-image", (*images)[route.0[0].floor - 1].clone())
-        .map_err(|e| e.to_string())?;
     if route.0.len() == 2 && route.0[0].floor != route.0[1].floor {
-        app.emit("update-scale", (*scale)[route.0[1].floor - 1])
+        app.emit("update-image", String::new())
             .map_err(|e| e.to_string())?;
         app.emit(
             "prompt",
@@ -131,19 +127,32 @@ fn update_nav(
             ),
         )
         .map_err(|e| e.to_string())?;
+    } else {
+        app.emit("update-route", route.clone())
+            .map_err(|e| e.to_string())?;
+        app.emit("update-scale", (*scale)[route.0[1].floor - 1])
+            .map_err(|e| e.to_string())?;
+        app.emit("update-image", (*images)[route.0[0].floor - 1].clone())
+            .map_err(|e| e.to_string())?;
+        let polish = |x: &String| {
+            if x.is_empty() {
+                String::from("标志点")
+            } else {
+                x.clone()
+            }
+        };
+        app.emit(
+            "prompt",
+            format!(
+                "按图示从 {} 走到 {}。",
+                route.0[0].name,
+                polish(&route.0[route.0.len() - 1].name)
+            ),
+        )
+        .map_err(|e| e.to_string())?;
     }
-    app.emit(
-        "prompt",
-        format!(
-            "按图示从 {} 走到 {}。",
-            route.0[0].name,
-            route.0[route.0.len() - 1].name
-        ),
-    )
-    .map_err(|e| e.to_string())?;
     Ok(())
 }
-
 
 /// 从 `from` 走到最近的名称为 `to` 的点。
 #[tauri::command]
@@ -156,7 +165,7 @@ fn create_new_nav(
     imgs: Vec<String>,
     scale: Vec<f64>,
     screen: ScreenSize,
-    disable_elevator: bool
+    disable_elevator: bool,
 ) -> Result<(), String> {
     let mut data = state.map.lock().map_err(|e| e.to_string())?;
     (*data) = map;
@@ -168,6 +177,7 @@ fn create_new_nav(
     let mut data = state.guidance.lock().map_err(|e| e.to_string())?;
     (*data) = guide;
     (*data).step_by_step(screen, (*scales).clone())?;
+    println!("{:?}", (*data).steps);
     let fisrt_route = (*data).query()?;
     app.emit("update-image", fisrt_route.0[0].clone())
         .map_err(|e| e.to_string())?;

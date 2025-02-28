@@ -72,7 +72,7 @@ export default defineComponent({
         })
 
         // 坐标转换
-        const getCanvasPosition = (clientX: number, clientY: number) => {
+        const   getCanvasPosition = (clientX: number, clientY: number) => {
             if (!canvas.value) return { x: 0, y: 0 }
             const rect = canvas.value.getBoundingClientRect()
             return {
@@ -278,7 +278,7 @@ export default defineComponent({
                     (1 + (distance - touchState.value.pinchDistance) * scaleFactor / touchState.value.pinchDistance)
 
                 scale.value = newScale
-                context.emit('scale', scale.value * image.width / props.mapWidth!);
+                context.emit('scale', scale.value!);
 
                 // 计算基于中点的偏移补偿
                 const canvasPos = getCanvasPosition(center.x, center.y)
@@ -298,6 +298,7 @@ export default defineComponent({
             canvas.value.height = window.innerHeight
             image.src = props.imageUrl
             image.onload = () => {
+                context.emit('scale', scale.value);
                 draw();
             }
         })
