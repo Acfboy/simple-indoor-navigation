@@ -3,11 +3,11 @@
     <n-layout-header :style="`height: ${screenHeight * 0.5}px;`" bordered>
       <div v-for="(item, index) in images">
         <Editmap v-show="index + 1 == floor" :image-url="item" :mapHeight="screenHeight * 0.5" :mapWidth="screenWidth"
-          :type="editType" :cur-floor="index + 1" @scale="updateScale(index, $event)" @select-node="handleSelectNode"/>
+          :type="editType" :cur-floor="index + 1" @scale="updateScale(index, $event)" @select-node="handleSelectNode" />
       </div>
     </n-layout-header>
     <n-layout-content :style="`height: ${screenHeight * 0.4}px`">
-      <n-flex vertical >
+      <n-flex vertical>
         <n-tabs v-model:value="editType" @update:value="updateNodes">
           <n-tab name="add" tab="添加"></n-tab>
           <n-tab name="del" tab="删除"></n-tab>
@@ -15,8 +15,12 @@
         </n-tabs>
 
         <div v-show="images.length != 0">
-          <n-pagination v-model:page="floor" :page-count="images.length" @update:page="markNode"/>
+          <n-pagination v-model:page="floor" :page-count="images.length" @update:page="markNode" />
         </div>
+
+        <n-button secondary type="info" v-if="images.length == 0" @click="loadFromFile">
+          从已有地图开始
+        </n-button>
 
         <n-button secondary @click="addFloor">
           添加一层
@@ -62,6 +66,17 @@
       </n-flex>
     </n-card>
   </n-modal>
+
+  <n-modal v-model:show="selectMap">
+    <n-card style="width: 90%" title="选择初始地图" :bordered="false" size="huge" role="dialog" aria-modal="true">
+      <n-select v-model:value="selectedOriginName" filterable placeholder="地图" :options="maps" />
+      <n-flex justify="end">
+        <n-button type="success" @click="loadMap">
+          确认
+        </n-button>
+      </n-flex>
+    </n-card>
+  </n-modal>
 </template>
 
 <script lang="ts">
@@ -69,7 +84,7 @@ import { NLayout, NLayoutContent, NLayoutHeader, NTabs, NTab, NPagination, NButt
 import { invoke } from "@tauri-apps/api/core";
 import { defineComponent, onMounted, ref } from "vue";
 import Editmap from "./painter/editmap.vue";
-import { BaseDirectory, create, exists, mkdir, writeTextFile } from "@tauri-apps/plugin-fs";
+import { BaseDirectory, create, exists, mkdir, readDir, readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { ArrowBack, SaveOutline } from "@vicons/ionicons5";
 
 
@@ -86,6 +101,9 @@ export default defineComponent({
     const screenWidth = ref(window.innerWidth);
     const editType = ref("add");
     const floorNumber = ref(0);
+    const selectedOriginName = ref("");
+    const selectMap = ref(false);
+    const maps = ref<{ label: string, value: string }[]>([]);
     const floor = ref(1);
     const selectedIndex = ref(-1);
 
@@ -120,6 +138,40 @@ export default defineComponent({
         });
       }
     }
+
+    const loadMap = async () => {
+      const dirExists = await exists('maps', {
+        baseDir: BaseDirectory.AppData
+      });
+      if (!dirExists) {
+        await mkdir('maps', {
+          baseDir: BaseDirectory.AppData,
+        });
+      }
+      const content = await readTextFile("maps/" + selectedOriginName.value + '.json', {
+        baseDir: BaseDirectory.AppData
+      });
+      const mapObj = JSON.parse(content);
+      await invoke('load_from_file', mapObj.map);
+      
+    };
+
+    const loadFromFile = async () => {
+      const entries = await readDir("maps", {
+        baseDir: BaseDirectory.AppData
+      });
+      let mapList = [];
+      for (const entry of entries) {
+        mapList.push(entry.name.slice(0, -5))
+      }
+      maps.value = mapList.map((s) => {
+        return {
+          label: s,
+          value: s
+        }
+      });
+      selectMap.value = true;
+    };
 
 
     const handleBack = () => {
@@ -200,9 +252,9 @@ export default defineComponent({
     }
 
     const handleSelectNode = (index: number) => {
-        markNode();
-        selectedIndex.value = index;
-      };
+      markNode();
+      selectedIndex.value = index;
+    };
 
     onMounted(async () => {
       await invoke("clear_data");
@@ -226,7 +278,12 @@ export default defineComponent({
       handleBack,
       toSaveMap,
       updateScale,
-      handleSelectNode
+      handleSelectNode,
+      selectedOriginName,
+      selectMap,
+      maps,
+      loadFromFile,
+      loadMap
     };
   },
 });

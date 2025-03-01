@@ -241,6 +241,13 @@ fn import_map(app: AppHandle) -> Result<String, ()> {
     Ok(String::new())
 }
 
+#[tauri::command]
+fn load_from_file(state: tauri::State<'_, State>, map_data: Map) -> Result<(), String> {
+    let mut data = state.map.lock().map_err(|e| e.to_string())?;
+    (*data) = map_data;
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -269,7 +276,8 @@ pub fn run() {
             get_store_data,
             create_new_nav,
             prev_step,
-            next_step
+            next_step,
+            load_from_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

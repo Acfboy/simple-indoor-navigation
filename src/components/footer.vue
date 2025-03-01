@@ -81,6 +81,10 @@ export default {
     },
     props: ['displayWdith', 'displayHeight'],
     data() {
+        type Map = {
+            edges: [],
+            nodes: { name: string }[]
+        }
         return {
             options: [{
                 label: "绘制地图",
@@ -103,7 +107,7 @@ export default {
             dest: "",
             showInfo: false,
             selectedMap: "",
-            mapObj: { imgs: [], map: {}, scales: {} },
+            mapObj: { imgs: [], map: {} as Map, scales: {} },
             disableElevator: true,
         };
     },

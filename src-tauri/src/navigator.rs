@@ -72,7 +72,7 @@ impl Map {
         self.check_node_valid(from)?;
         let (dis, last) = self.find_path(to, disable_elevator);
         if dis[from] == INF {
-            return Err("no path".to_string());
+            return Err("找不到路径".to_string());
         }
         Ok(self.get_path(last, from))
     }
