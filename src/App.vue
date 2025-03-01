@@ -8,6 +8,7 @@ import Prompt from "./components/prompt.vue";
 import Footer from "./components/footer.vue";
 import Painter from "./components/painter.vue";
 import Manager from "./components/manager.vue";
+import Info from "./components/info.vue";
 
 const screenHeight = window.innerHeight;
 const screenWidth = window.innerWidth;
@@ -47,14 +48,14 @@ function handleBack() {
       </n-layout-content>
 
       <n-layout-footer bordered>
-        <Footer @switch="handleSwitch" :display-height="screenHeight" :display-wdith="screenWidth"/>
+        <Footer @switch="handleSwitch" :display-height="screenWidth" :display-wdith="screenWidth"/>
       </n-layout-footer>
 
     </n-layout>
 
     <n-layout v-show="page == 'info'">
       <n-layout-content :style="`height: ${screenHeight * 0.9}px; `">
-        <!-- <Info /> -->
+        <Info />
       </n-layout-content>
       <n-layout-footer bordered>
         <n-flex justify="center">

@@ -121,7 +121,7 @@ fn update_nav(
         app.emit(
             "prompt",
             format!(
-                "由 {} 上 {} 楼。",
+                "由 {} 到 {} 楼。",
                 route.0[0].name,
                 route.0[route.0.len() - 1].floor
             ),
@@ -134,9 +134,13 @@ fn update_nav(
             .map_err(|e| e.to_string())?;
         app.emit("update-image", (*images)[route.0[0].floor - 1].clone())
             .map_err(|e| e.to_string())?;
-        let polish = |x: &String| {
+        let polish = |x: &String, tp: usize| {
             if x.is_empty() {
-                String::from("标志点")
+                if tp == 0 {
+                    String::from("红色标志点")
+                } else {
+                    String::from("绿色标志点")
+                }
             } else {
                 x.clone()
             }
@@ -145,8 +149,8 @@ fn update_nav(
             "prompt",
             format!(
                 "按图示从 {} 走到 {}。",
-                route.0[0].name,
-                polish(&route.0[route.0.len() - 1].name)
+                polish(&route.0[0].name, 0),
+                polish(&route.0[route.0.len() - 1].name, 1)
             ),
         )
         .map_err(|e| e.to_string())?;
@@ -177,11 +181,7 @@ fn create_new_nav(
     let mut data = state.guidance.lock().map_err(|e| e.to_string())?;
     (*data) = guide;
     (*data).step_by_step(screen, (*scales).clone())?;
-    println!("{:?}", (*data).steps);
-    let fisrt_route = (*data).query()?;
-    app.emit("update-image", fisrt_route.0[0].clone())
-        .map_err(|e| e.to_string())?;
-    update_nav(&app, fisrt_route, images, scales)?;
+    update_nav(&app, (*data).query()?, images, scales)?;
     app.emit("begin", ()).map_err(|e| e.to_string())?;
     Ok(())
 }

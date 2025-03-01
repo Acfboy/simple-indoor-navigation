@@ -45,26 +45,25 @@ export default defineComponent({
         const canvas = ref<HTMLCanvasElement | null>(null);
         const offset = ref<{ x: number; y: number }>({ x: 0, y: 0 });
         const scale = ref<number>(1);
+        const topLeft = ref< { x: number; y: number}>({x:0, y:0});
         const climbing = ref<boolean>(false);
         let spanx = 0;
         let spany = 0;
 
+        const calcOffset = () => {
+            offset.value.x = -topLeft.value.x * scale.value + (props.screenWidth - spanx * scale.value) / 2;
+            offset.value.y = -topLeft.value.y * scale.value + (props.screenHeight - spany * scale.value) / 2;
+        }
+
         const loadImage = () => {
-            // alert('loadimage');
             image.value = null;
             const img = new Image();
             img.src = imageUrl.value;
             img.onload = () => {
                 image.value = img;
-                offset.value.x = -offset.value.x * scale.value + (props.screenWidth - spanx * scale.value) / 2;
-                offset.value.y = -offset.value.y * scale.value + (props.screenHeight - spany * scale.value) / 2;
                 updateCanvas();
+                calcOffset();
             };
-        };
-
-        const addPoint = () => {
-            points.value.push({ ...newPoint.value });
-            updateCanvas();
         };
 
         const setAngleListener = async () => {
@@ -97,6 +96,7 @@ export default defineComponent({
 
         const setScaleListener = async () => {
             await listen<number>('update-scale', (event) => {
+                // alert('new scale' + event.payload)
                 scale.value = event.payload;
             });
         };
@@ -112,9 +112,7 @@ export default defineComponent({
         const setPathListener = async () => {
             await listen<Node[]>('update-route', (event) => {
                 const list = event.payload.map((node) => node.pos);
-                offset.value = pathLeftTop(list);
-                // alert(list.length)
-                // offset.value = { x: 100, y: 0 };
+                topLeft.value = pathLeftTop(list);
                 let newPoints: { x: number, y: number }[] = [];
                 list.forEach((point) => {
                     newPoints.push({
@@ -122,8 +120,8 @@ export default defineComponent({
                         y: point.y
                     })
                 });
-                // alert(offset.value.x + ' ' + offset.value.y)
                 points.value = newPoints;
+                calcOffset();
                 updateCanvas();
             });
         }
@@ -243,7 +241,6 @@ export default defineComponent({
             points,
             image,
             canvas,
-            addPoint,
             updateCanvas,
             scale, // 返回 scale 变量
             climbing,

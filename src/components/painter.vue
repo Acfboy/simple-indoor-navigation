@@ -7,7 +7,7 @@
                     @select-node="handleSelectNode" :init-data="initDataList.length ? initDataList[index] : {}" />
             </div>
         </n-layout-header>
-        <n-layout-content :style="`height: ${screenHeight * 0.4}px`">
+        <n-layout-content :style="`height: ${screenHeight * 0.5}px`">
             <n-flex vertical>
                 <n-tabs v-model:value="editType" @update:value="updateNodes">
                     <n-tab name="add" tab="添加"></n-tab>
@@ -27,6 +27,15 @@
                     添加一层
                 </n-button>
 
+                <n-switch v-model:value="autofill">
+                    <template #checked>
+                        自动填充开
+                    </template>
+                    <template #unchecked>
+                        自动填充关
+                    </template>
+                </n-switch>
+
                 <n-card v-if="editType == 'mark'" title="标注选中点">
                     <div v-for="item in nodeList">
                         <!-- {{ item }} -->
@@ -38,18 +47,22 @@
                         </div>
                     </div>
                 </n-card>
-                
+
                 <n-flex justify="space-between">
-                    <n-button @click="handleBack" text>
-                        <n-icon>
-                            <ArrowBack />
-                        </n-icon>
+                    <n-button @click="handleBack">
+                        <template #icon>
+                            <n-icon>
+                                <ArrowBack />
+                            </n-icon>
+                        </template>
                         返回
                     </n-button>
-                    <n-button @click="toSaveMap" text size="small">
-                        <n-icon>
-                            <SaveOutline />
-                        </n-icon>
+                    <n-button @click="toSaveMap" size="small">
+                        <template #icon>
+                            <n-icon>
+                                <SaveOutline />
+                            </n-icon>
+                        </template>
                         保存地图
                     </n-button>
                 </n-flex>
@@ -73,18 +86,20 @@
 
     <n-modal v-model:show="selectMap">
         <n-card style="width: 90%" title="选择初始地图" :bordered="false" size="huge" role="dialog" aria-modal="true">
-            <n-select v-model:value="selectedOriginName" filterable placeholder="地图" :options="maps" />
-            <n-flex justify="end">
-                <n-button type="success" @click="loadMap">
-                    确认
-                </n-button>
+            <n-flex verticle>
+                <n-select v-model:value="selectedOriginName" filterable placeholder="地图" :options="maps" />
+                <n-flex justify="end">
+                    <n-button type="success" @click="loadMap">
+                        确认
+                    </n-button>
+                </n-flex>
             </n-flex>
         </n-card>
     </n-modal>
 </template>
 
 <script lang="ts">
-import { NLayout, NLayoutContent, NLayoutHeader, NTabs, NTab, NPagination, NButton, NInput, NFlex, NCard, NModal, NIcon, NSelect } from "naive-ui";
+import { NLayout, NLayoutContent, NLayoutHeader, NTabs, NTab, NPagination, NButton, NInput, NFlex, NCard, NModal, NIcon, NSelect, NSwitch } from "naive-ui";
 import { invoke } from "@tauri-apps/api/core";
 import { defineComponent, onMounted, ref } from "vue";
 import Editmap from "./painter/editmap.vue";
@@ -94,7 +109,7 @@ import { ArrowBack, SaveOutline } from "@vicons/ionicons5";
 export default defineComponent({
     name: "Map",
     components: {
-        NLayout, Editmap, NLayoutHeader, NModal, NLayoutContent, NSelect,
+        NLayout, Editmap, NLayoutHeader, NModal, NLayoutContent, NSelect, NSwitch,
         NTabs, NTab, NPagination, NButton, NInput, NFlex, NCard, NIcon, ArrowBack, SaveOutline
     },
     emits: ['switch'],
@@ -108,6 +123,7 @@ export default defineComponent({
         const maps = ref<{ label: string, value: string }[]>([]);
         const floor = ref(1);
         const selectedIndex = ref(-1);
+        const autofill = ref(false);
 
         type Position = {
             x: number,
@@ -146,12 +162,14 @@ export default defineComponent({
         const initDataList = ref<InitData[]>([]);
 
         const updateNodes = async () => {
+            await markNode();
             nodeList.value = await invoke('cur_node_list');
         }
 
         const markNode = async () => {
             const cur = nodeList.value.find(e => e.index == selectedIndex.value);
             if (cur) {
+                // alert(cur.name);
                 await invoke('mark_node', {
                     index: cur.index,
                     name: cur.name,
@@ -187,12 +205,12 @@ export default defineComponent({
                     })
                 }
 
-                type OriNodeType = { 
-                    name: string, 
-                    pos: { x: number, y: number }, 
-                    floor: number, 
-                    elevator: string, 
-                    index: number 
+                type OriNodeType = {
+                    name: string,
+                    pos: { x: number, y: number },
+                    floor: number,
+                    elevator: string,
+                    index: number
                 };
 
                 let convert = (c: OriNodeType) => {
@@ -319,9 +337,31 @@ export default defineComponent({
             }
         }
 
-        const handleSelectNode = (index: number) => {
-            markNode();
+        const handleSelectNode = async (index: number) => {
+            await markNode();
+            const fill = (s: string) => {
+                let p = 0;
+                while (p < s.length && isNaN(Number(s.slice(p))))
+                    p += 1;
+                if (p == s.length) return s;
+                let nu = Number(s.slice(p));
+                return s.slice(0, p) + (nu + 1);
+            };
+            while (nodeList.value.length <= index) {
+                nodeList.value.push({
+                    name: "",
+                    pos: { x: 0, y: 0 },
+                    floor: 0,
+                    elevator: "",
+                    index: nodeList.value.length,
+                })
+            }
+            if (selectedIndex.value != null && autofill.value && nodeList.value[index].name.length == 0) {
+                nodeList.value[index].name = fill(nodeList.value[selectedIndex.value].name);
+                // alert()
+            }
             selectedIndex.value = index;
+            await markNode();
         };
 
         onMounted(async () => {
@@ -352,7 +392,8 @@ export default defineComponent({
             maps,
             loadFromFile,
             loadMap,
-            initDataList
+            initDataList,
+            autofill
         };
     },
 });

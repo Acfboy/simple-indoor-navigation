@@ -55,7 +55,7 @@ impl Guidance {
         let mut elevated = false;
         self.steps = vec![Route(vec![beg.clone()])];
         while let Some(&nxt) = it.peek() {
-            let (n_low_bound, n_up_bound) = nxt.check_bound(beg, &low_bound, &up_bound);
+            let (mut n_low_bound, mut n_up_bound) = nxt.check_bound(beg, &low_bound, &up_bound);
             if n_up_bound.0 - n_low_bound.0 > size.0 * 0.9 / scales[nxt.floor - 1]
                 || n_up_bound.1 - n_low_bound.1 > size.1 * 0.9 / scales[nxt.floor - 1]
                 || nxt.floor != lst.floor
@@ -70,6 +70,8 @@ impl Guidance {
                     elevated = false;
                 }
                 beg = lst;
+                n_low_bound = ScreenSize(0.0, 0.0);
+                n_up_bound = ScreenSize(0.0, 0.0);
                 self.steps.push(Route(vec![beg.clone()]));
             }
             let last_index = self.steps.len() - 1;

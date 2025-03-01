@@ -158,6 +158,7 @@ export default defineComponent({
                             pos: pos,
                             floor: props.curFloor,
                         });
+                        context.emit('select-node', newIndex);
                         blocks.value.push({
                             x: pos.x,
                             y: pos.y,
