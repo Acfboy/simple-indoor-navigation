@@ -19,6 +19,11 @@ interface Line {
     end: Block
 }
 
+// interface initData {
+//     blocks: Block[],
+//     lines: Line[],
+// }
+
 export default defineComponent({
     props: {
         mapHeight: {
@@ -40,6 +45,10 @@ export default defineComponent({
         curFloor: {
             type: Number,
             default: 0
+        },
+        initData: {
+            type: Object,
+            default: {}, 
         }
     },
     setup(props, context) {
@@ -90,13 +99,13 @@ export default defineComponent({
             ctx.value.setTransform(scale.value, 0, 0, scale.value, offset.value.x, offset.value.y)
 
             ctx.value.drawImage(image, 0, 0)
-
             blocks.value.forEach(block => {
                 if (props.type == 'mark' && justClicked.value && block.index == justClicked.value.index) {
                     ctx.value!.fillStyle = '#0000ff'
                 } else {
                     ctx.value!.fillStyle = '#ff0000'
                 }
+                
                 ctx.value!.fillRect(
                     block.x - block.size / 2,
                     block.y - block.size / 2,
@@ -296,6 +305,10 @@ export default defineComponent({
             ctx.value = canvas.value.getContext('2d')
             canvas.value.width = window.innerWidth
             canvas.value.height = window.innerHeight
+            if (props.initData.lines) {
+                blocks.value = props.initData.blocks;
+                lines.value = props.initData.lines;
+            }
             image.src = props.imageUrl
             image.onload = () => {
                 context.emit('scale', scale.value);
