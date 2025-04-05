@@ -1,5 +1,9 @@
 ## simple-indoor-navigation
 
+Refactoring completed.
+
+重构已经完成，代码质量高了些，操作逻辑也正常了很多。在陇山堂的实践表明，挺有用的。
+
 This is a hands - on project of mine to create an indoor navigation app based on a mobile compass. I'm using Tauri for the backend, with Vue + TypeScript for the frontend and Rust for the backend.
 
 I've already implemented the original features, but there are still some issues:
