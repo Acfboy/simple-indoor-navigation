@@ -1,4 +1,9 @@
-## simple-indoor-navigation
+## 兰的找教室
+
+拍摄导览图并在上面方便地打些标记，然后再也不用担心找不到教室了！
+![IMG_20250503_175904](https://github.com/user-attachments/assets/b9c663d1-1347-44bf-ad07-6cf8b7358009)
+
+---
 
 Refactoring completed.
 
